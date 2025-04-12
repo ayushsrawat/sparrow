@@ -1,0 +1,8 @@
+
+GET localhost:8080/api/search/dictionary?q=food
+
+###
+GET localhost:8080/api/search/dictionary?q=dog
+
+###
+GET localhost:8080/api/search/dictionary?q=drive
