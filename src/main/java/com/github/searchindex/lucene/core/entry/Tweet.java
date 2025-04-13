@@ -1,5 +1,6 @@
 package com.github.searchindex.lucene.core.entry;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Tweet {
 
   private Long    tweetId;
@@ -16,8 +18,11 @@ public class Tweet {
   private String  fullName;
   private String  tweet;
   private String  url;
+  @JsonInclude(JsonInclude.Include.NON_DEFAULT)
   private Integer views;
+  @JsonInclude(JsonInclude.Include.NON_DEFAULT)
   private Integer likes;
+  @JsonInclude(JsonInclude.Include.NON_DEFAULT)
   private Integer retweets;
   private LocalDateTime tweetDate;
 

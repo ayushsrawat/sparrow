@@ -4,6 +4,7 @@ import com.github.searchindex.lucene.IndexContext;
 import com.github.searchindex.lucene.core.IndexType;
 import com.github.searchindex.lucene.core.Indexer;
 import com.github.searchindex.lucene.core.entry.DictionaryEntry;
+import com.github.searchindex.lucene.core.entry.SearchQuery;
 import lombok.Getter;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -96,12 +97,13 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
   }
 
   @Override
-  public List<DictionaryEntry> search(IndexContext context, String ques) {
+  public List<DictionaryEntry> search(IndexContext context, SearchQuery searchQuery) {
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
+      String ques = searchQuery.getQuery();
       IndexSearcher searcher = new IndexSearcher(reader);
       QueryParser parser = new QueryParser(IndexField.MEANING.getName(), context.getAnalyzer());
       Query query = parser.parse(ques);
-      logger.info("Searching for the query : {}, using searcher : {}", ques, searcher);
+      logger.info("Searching for the query : {}, using searcher : {}", query, searcher);
 
       TopDocs topDocs = searcher.search(query, 10);
       List<DictionaryEntry> result = new ArrayList<>();
@@ -115,6 +117,7 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
           .build();
         result.add(entry);
       }
+      logger.info("Searched {} words for the question {}.", result.size(), ques);
       return result;
     } catch (IOException | ParseException e) {
       logger.error("Search failed : {}", e.getMessage());

@@ -20,14 +20,8 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.DateTimeException;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
@@ -56,6 +50,7 @@ public class TweetNormalizer {
 
   private final ObjectMapper objectMapper;
   private final ExecutorService executorService;
+  private final ParseUtil parseUtil;
 
   public void normalizeCsv() {
     CompletableFuture<Void> f1 = CompletableFuture.runAsync(() -> {
@@ -77,7 +72,7 @@ public class TweetNormalizer {
       }
     }, executorService);
     CompletableFuture.allOf(f1, f2, f3).join();
-    //todo : can't see the logs of f2, and f3 because of f1 main thread
+    //todo : can't see the logs of f2, and f3 because of f1 thread
     logger.info("Normalized tweets successfully!");
   }
 
@@ -124,10 +119,10 @@ public class TweetNormalizer {
           .get()) {
         for (CSVRecord record : csvParser) {
           Tweet tweet = Tweet.builder()
-            .tweetId(parseLong(recordGet(record, "id")))
+            .tweetId(parseUtil.parseLong(recordGet(record, "id")))
             .username(recordGet(record, "username"))
             .tweet(recordGet(record, "text"))
-            .tweetDate(parseDateV1(recordGet(record, "date")))
+            .tweetDate(parseUtil.parseDateV1(recordGet(record, "date")))
             .build();
           tweets.add(tweet);
           logger.info("Parsing tweet : {} from v1 dataset", tweet);
@@ -159,15 +154,15 @@ public class TweetNormalizer {
           .get()) {
         for (CSVRecord record : csvParser) {
           Tweet tweet = Tweet.builder()
-            .tweetId(parseLong(recordGet(record, "id")))
+            .tweetId(parseUtil.parseLong(recordGet(record, "id")))
             .username(recordGet(record, "user_posted"))
             .fullName(recordGet(record, "name"))
             .tweet(recordGet(record, "description"))
-            .tweetDate(parseDateV2(recordGet(record, "date_posted")))
+            .tweetDate(parseUtil.parseDateV2(recordGet(record, "date_posted")))
             .url(recordGet(record, "url"))
-            .views(parseInt(recordGet(record, "views")))
-            .likes(parseInt(recordGet(record, "likes")))
-            .retweets(parseInt(recordGet(record, "reposts")))
+            .views(parseUtil.parseInt(recordGet(record, "views")))
+            .likes(parseUtil.parseInt(recordGet(record, "likes")))
+            .retweets(parseUtil.parseInt(recordGet(record, "reposts")))
             .build();
           tweets.add(tweet);
           logger.info("Parsing tweet : {} from v2 dataset", tweet);
@@ -199,12 +194,12 @@ public class TweetNormalizer {
         .get()) {
       for (CSVRecord record : csvParser) {
         Tweet tweet = Tweet.builder()
-          .tweetId(parseLong(recordGet(record, "Tweet_ID")))
+          .tweetId(parseUtil.parseLong(recordGet(record, "Tweet_ID")))
           .username(recordGet(record, "Username"))
           .tweet(recordGet(record, "Text"))
-          .likes(parseInt(recordGet(record, "Likes")))
-          .retweets(parseInt(recordGet(record, "Retweets")))
-          .tweetDate(parseDateV3(recordGet(record, "Timestamp")))
+          .likes(parseUtil.parseInt(recordGet(record, "Likes")))
+          .retweets(parseUtil.parseInt(recordGet(record, "Retweets")))
+          .tweetDate(parseUtil.parseDateV3(recordGet(record, "Timestamp")))
           .build();
         tweets.add(tweet);
         logger.info("Parsing tweet : {} from v3 dataset", tweet);
@@ -219,58 +214,6 @@ public class TweetNormalizer {
 
   private String recordGet(CSVRecord record, String key) {
     return record.isMapped(key) && record.isSet(key) ? record.get(key) : null;
-  }
-
-  private Long parseLong(String value) {
-    try {
-      return value == null || value.isBlank() ? null : Long.parseLong(value.trim());
-    } catch (NumberFormatException e) {
-      return 0L;
-    }
-  }
-
-  private Integer parseInt(String value) {
-    try {
-      return value == null || value.isBlank() ? null : Integer.parseInt(value.trim());
-    } catch (NumberFormatException e) {
-      return 0;
-    }
-  }
-
-  //Mon Apr 06 22:19:49 PDT 2009
-  private LocalDateTime parseDateV1(String date) {
-    try {
-      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss z yyyy", Locale.ENGLISH);
-      ZonedDateTime zdt = ZonedDateTime.parse(date, formatter);
-      return zdt.toLocalDateTime();
-    } catch (DateTimeException e) {
-      logger.warn("Failed to parse V1 date: {}", date);
-      return null;
-    }
-  }
-
-  //2024-05-29T06:30:33.000Z
-  private LocalDateTime parseDateV2(String date) {
-    try {
-      String cleanDate = date.trim().replace("\"", "");
-      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
-      OffsetDateTime offsetDateTime = OffsetDateTime.parse(cleanDate, formatter);
-      return offsetDateTime.toLocalDateTime();
-    } catch (DateTimeException | NullPointerException e) {
-      logger.warn("Failed to parse V2 date: {}", date);
-      return null;
-    }
-  }
-
-  //2023-01-30 11:00:51
-  private LocalDateTime parseDateV3(String date) {
-    try {
-      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-      return LocalDateTime.parse(date, formatter);
-    } catch (DateTimeException e) {
-      logger.warn("Failed to parse V3 date: {}", date);
-      return null;
-    }
   }
 
 }

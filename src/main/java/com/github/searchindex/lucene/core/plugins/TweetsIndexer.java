@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.searchindex.lucene.IndexContext;
 import com.github.searchindex.lucene.core.IndexType;
 import com.github.searchindex.lucene.core.Indexer;
+import com.github.searchindex.lucene.core.entry.SearchQuery;
 import com.github.searchindex.lucene.core.entry.Tweet;
 import com.github.searchindex.lucene.core.tools.DateUtil;
+import com.github.searchindex.lucene.core.tools.ParseUtil;
 import com.github.searchindex.lucene.core.tools.TweetNormalizer;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,14 @@ import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +37,7 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -38,9 +49,11 @@ public class TweetsIndexer implements Indexer<Tweet> {
   private static final String DATASET_V1_FILENAME = "twitter-dataset-v1.json";
   private static final String DATASET_V2_FILENAME = "twitter-dataset-v2.json";
   private static final String DATASET_V3_FILENAME = "twitter-dataset-v3.json";
+
   private final TweetNormalizer tweetNormalizer;
   private final ObjectMapper objectMapper;
   private final DateUtil dateUtil;
+  private final ParseUtil parseUtil;
 
   @Value("${tweet.output.json.path}")
   private String twitterDatasetDirectory;
@@ -135,8 +148,37 @@ public class TweetsIndexer implements Indexer<Tweet> {
   }
 
   @Override
-  public List<Tweet> search(IndexContext context, String query) {
-    return List.of();
+  public List<Tweet> search(IndexContext context, SearchQuery searchQuery) {
+    try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      QueryParser parser = new QueryParser(IndexField.TWEET.getName(), context.getAnalyzer());
+      Query query = parser.parse(searchQuery.getQuery());
+      logger.info("Searching for the query : {}, using searcher : {}", query, searcher);
+
+      TopDocs topDocs = searcher.search(query, 10);
+      List<Tweet> result = new ArrayList<>();
+      for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+        Document document = searcher.storedFields().document(scoreDoc.doc);
+        Tweet tweet = Tweet.builder()
+          .tweetId(parseUtil.parseLong(document.get(IndexField.TWEET_ID.getName())))
+          .username(document.get(IndexField.USERNAME.getName()))
+          .tweet(document.get(IndexField.TWEET.getName()))
+          .tweetDate(dateUtil.convertToLocalDateTime(
+            parseUtil.parseLong(document.get(IndexField.DATE.getName()))))
+          .fullName(document.get(IndexField.FULL_NAME.getName()))
+          .url(document.get(IndexField.URL.getName()))
+          .views(parseUtil.parseInt(document.get(IndexField.VIEWS.getName())))
+          .likes(parseUtil.parseInt(document.get(IndexField.LIKES.getName())))
+          .retweets(parseUtil.parseInt(document.get(IndexField.RETWEETS.getName())))
+          .build();
+        result.add(tweet);
+      }
+      logger.info("Searched {} tweets for the query {}.", result.size(), searchQuery.getQuery());
+      return result;
+    } catch (IOException | ParseException e) {
+      logger.error("Search failed : {}", e.getMessage());
+      return List.of();
+    }
   }
 
 }

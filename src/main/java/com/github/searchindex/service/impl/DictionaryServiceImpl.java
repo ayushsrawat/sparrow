@@ -5,6 +5,7 @@ import com.github.searchindex.lucene.IndexContextFactory;
 import com.github.searchindex.lucene.core.IndexMode;
 import com.github.searchindex.lucene.core.IndexType;
 import com.github.searchindex.lucene.core.entry.DictionaryEntry;
+import com.github.searchindex.lucene.core.entry.SearchQuery;
 import com.github.searchindex.lucene.core.plugins.DictionaryIndexer;
 import com.github.searchindex.service.DictionaryService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class DictionaryServiceImpl implements DictionaryService {
   public List<DictionaryEntry> search(String query) {
     try {
       IndexContext context = indexContextFactory.createIndexContext(IndexType.DICTIONARY, IndexMode.SEARCHING);
-      return dictionaryIndexer.search(context, query);
+      return dictionaryIndexer.search(context, SearchQuery.builder().query(query).build());
     } catch (IOException e) {
       throw new RuntimeException(e.getMessage());
     }

@@ -1,6 +1,7 @@
 package com.github.searchindex.lucene.core;
 
 import com.github.searchindex.lucene.IndexContext;
+import com.github.searchindex.lucene.core.entry.SearchQuery;
 
 import java.util.List;
 
@@ -18,6 +19,6 @@ public interface Indexer<T> {
 
   void index(IndexContext context);
 
-  List<T> search(IndexContext context, String query);
+  List<T> search(IndexContext context, SearchQuery searchQuery);
 
 }

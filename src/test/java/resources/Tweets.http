@@ -1,0 +1,13 @@
+GET localhost:8080/api/search/twitter?q=god
+
+###
+GET localhost:8080/api/search/twitter?q=luck
+
+###
+GET localhost:8080/api/search/twitter?q=funny joke
+
+###
+GET localhost:8080/api/search/twitter?q=Jumped
+
+###
+GET localhost:8080/api/search/twitter?q=ipl

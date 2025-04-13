@@ -5,6 +5,7 @@ import com.github.searchindex.lucene.IndexContextFactory;
 import com.github.searchindex.lucene.core.IndexMode;
 import com.github.searchindex.lucene.core.IndexType;
 import com.github.searchindex.lucene.core.entry.DictionaryEntry;
+import com.github.searchindex.lucene.core.entry.SearchQuery;
 import com.github.searchindex.lucene.core.plugins.DictionaryIndexer;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -22,7 +23,7 @@ public class DictionaryIndexerTest {
     IndexContextFactory factory = new IndexContextFactory();
     IndexContext context = factory.createIndexContext(IndexType.DICTIONARY, IndexMode.SEARCHING);
     DictionaryIndexer dictionaryIndexer = new DictionaryIndexer();
-    List<DictionaryEntry> search = dictionaryIndexer.search(context, "write");
+    List<DictionaryEntry> search = dictionaryIndexer.search(context, SearchQuery.builder().query("listen").build());
     logger.info("Searched result  : {}", search);
   }
 
