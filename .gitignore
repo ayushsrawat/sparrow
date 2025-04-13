@@ -27,3 +27,4 @@ replay_pid*
 
 .DS_store
 src/main/resources/tweets/*.json
+src/main/resources/wikipedia
