@@ -1,5 +1,6 @@
 package com.github.searchindex.lucene.core.tools;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.searchindex.lucene.core.entry.Tweet;
 import lombok.RequiredArgsConstructor;
@@ -40,12 +41,18 @@ import java.util.concurrent.ExecutorService;
 public class TweetNormalizer {
 
   private static final Logger logger = LoggerFactory.getLogger(TweetNormalizer.class);
-  private static final String TWITTER_DATASET_V1 = "/tweets/twitter-dataset-v1.csv";
-  private static final String TWITTER_DATASET_V2 = "/tweets/twitter-dataset-v2.csv";
-  private static final String TWITTER_DATASET_V3 = "/tweets/twitter-dataset-v3.csv";
 
   @Value("${tweet.output.json.path}")
   private String twitterDatasetDirectory;
+
+  @Value("${twitter.dataset.v1.csv.path}")
+  private String twitterDatasetV1;
+
+  @Value("${twitter.dataset.v2.csv.path}")
+  private String twitterDatasetV2;
+
+  @Value("${twitter.dataset.v3.csv.path}")
+  private String twitterDatasetV3;
 
   private final ObjectMapper objectMapper;
   private final ExecutorService executorService;
@@ -70,7 +77,8 @@ public class TweetNormalizer {
       }
     }, executorService);
     CompletableFuture.allOf(f1, f2, f3).join();
-    logger.info("Normalized tweets successfully! Generated");
+    //todo : can't see the logs of f2, and f3 because of f1 main thread
+    logger.info("Normalized tweets successfully!");
   }
 
   private void saveTweetsToJson(List<Tweet> tweets, String filename) {
@@ -80,25 +88,31 @@ public class TweetNormalizer {
       return;
     }
 
-    File tweetsJsonFile = resource.resolve("tweet").resolve(filename).toFile();
+    File tweetsJsonFile = resource.resolve("tweets").resolve(filename).toFile();
     try {
       File parent = tweetsJsonFile.getParentFile();
       if (!parent.exists() && !parent.mkdirs()) {
         logger.error("Error creating directory for file {}", parent);
         return;
       }
-      objectMapper.writerWithDefaultPrettyPrinter().writeValue(tweetsJsonFile, tweets);
+      objectMapper
+        .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+        .writerWithDefaultPrettyPrinter()
+        .writeValue(tweetsJsonFile, tweets);
       logger.info("Saved {} tweets to {}", tweets.size(), tweetsJsonFile.getAbsolutePath());
     } catch (IOException e) {
       logger.error("Error saving {} tweets to {} file : {} ", tweets.size(), filename, e.getMessage());
     }
   }
 
-  // if you found twitter-dataset-v1.json in the resource don't bother to write again
   private List<Tweet> normalizeTwitterV1Dataset() {
-    try (InputStream resourceAsStream = getClass().getResourceAsStream(TWITTER_DATASET_V1)) {
+    try (InputStream resourceAsStream = getClass().getResourceAsStream(twitterDatasetV1)) {
       if (resourceAsStream == null) {
         logger.error("v1 dataset not found.");
+        return List.of();
+      }
+      if (this.getClass().getResource(twitterDatasetV1.replace(".csv", ".json")) != null) {
+        logger.warn("Normalized file found in resources! Skipping normalizing v1 dataset");
         return List.of();
       }
       List<Tweet> tweets = new ArrayList<>();
@@ -127,9 +141,13 @@ public class TweetNormalizer {
   }
 
   private List<Tweet> normalizeTwitterV2Dataset() {
-    try (InputStream resourceAsStream = getClass().getResourceAsStream(TWITTER_DATASET_V2)) {
+    try (InputStream resourceAsStream = getClass().getResourceAsStream(twitterDatasetV2)) {
       if (resourceAsStream == null) {
         logger.error("v2 dataset not found.");
+        return List.of();
+      }
+      if (this.getClass().getResource(twitterDatasetV2.replace(".csv", ".json")) != null) {
+        logger.warn("Normalized file found in resources! Skipping normalizing v2 dataset");
         return List.of();
       }
       List<Tweet> tweets = new ArrayList<>();
@@ -163,9 +181,13 @@ public class TweetNormalizer {
   }
 
   private List<Tweet> normalizeTwitterV3Dataset() {
-    InputStream resourceAsStream = getClass().getResourceAsStream(TWITTER_DATASET_V3);
+    InputStream resourceAsStream = getClass().getResourceAsStream(twitterDatasetV3);
     if (resourceAsStream == null) {
       logger.error("v3 dataset not found.");
+      return List.of();
+    }
+    if (this.getClass().getResource(twitterDatasetV3.replace(".csv", ".json")) != null) {
+      logger.warn("Normalized file found in resources! Skipping normalizing v3 dataset");
       return List.of();
     }
     List<Tweet> tweets = new ArrayList<>();

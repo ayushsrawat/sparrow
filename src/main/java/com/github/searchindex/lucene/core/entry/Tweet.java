@@ -23,11 +23,17 @@ public class Tweet {
 
   @Override
   public String toString() {
-    return "TweetId: " + tweetId +
-      "\nUsername: " + username +
-      "\nTweet: " + tweet +
-      "\nDate: " + tweetDate +
-      "\nUrl: " + url;
+    StringBuilder sb = new StringBuilder();
+    if (tweetId != null) sb.append("TweetId: ").append(tweetId).append("\n");
+    if (username != null && !username.isBlank()) sb.append("Username: ").append(username).append("\n");
+    if (fullName != null && !fullName.isBlank()) sb.append("Full Name: ").append(fullName).append("\n");
+    if (tweet != null && !tweet.isBlank()) sb.append("Tweet: ").append(tweet).append("\n");
+    if (tweetDate != null) sb.append("Date: ").append(tweetDate).append("\n");
+    if (url != null && !url.isBlank()) sb.append("URL: ").append(url).append("\n");
+    if (views != null) sb.append("Views: ").append(views).append("\n");
+    if (likes != null) sb.append("Likes: ").append(likes).append("\n");
+    if (retweets != null) sb.append("Retweets: ").append(retweets).append("\n");
+    return sb.toString().strip();
   }
 
 }

@@ -27,7 +27,6 @@ public class TweetsIndexer implements Indexer<Tweet> {
   @Override
   public void index(IndexContext context) {
     tweetNormalizer.normalizeCsv();
-
   }
 
   @Override

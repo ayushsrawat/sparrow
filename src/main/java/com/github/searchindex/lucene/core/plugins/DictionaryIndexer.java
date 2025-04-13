@@ -20,6 +20,8 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -31,10 +33,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@PropertySource("classpath:index.properties")
 public class DictionaryIndexer implements Indexer<DictionaryEntry> {
 
   private static final Logger logger = LoggerFactory.getLogger(DictionaryIndexer.class);
-  private static final String WORD_DICTIONARY_TXT = "/data/word-dictionary.txt";
+
+  @Value("${word.dictionary.txt}")
+  private String wordDictionaryTxt;
 
   @Override
   public IndexType getIndexType() {
@@ -57,9 +62,9 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
   @Override
   public void index(IndexContext context) {
     try {
-      URL data = this.getClass().getResource(WORD_DICTIONARY_TXT);
+      URL data = this.getClass().getResource(wordDictionaryTxt);
       if (data == null) {
-        throw new IOException(WORD_DICTIONARY_TXT + " not found.");
+        throw new IOException(wordDictionaryTxt + " not found.");
       }
       File file = new File(data.getPath());
       try (IndexWriter writer = context.getWriter(); BufferedReader reader = new BufferedReader(new FileReader(file))) {
