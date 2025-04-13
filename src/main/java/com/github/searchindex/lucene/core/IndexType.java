@@ -6,8 +6,7 @@ import lombok.Getter;
 public enum IndexType {
 
   DICTIONARY("dictionary"),
-  TWEETS("tweets"),
-  SHAKESPEARE("shakespeare");
+  TWEETS("tweets");
 
   private final String name;
 
