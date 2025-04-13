@@ -30,6 +30,7 @@ public class IndexContextFactory {
    * Context to save the lucene indexes in ~/lucene/search-index/{index-name}
    */
   public IndexContext createIndexContext(IndexType indexType, IndexMode indexMode) throws IOException {
+    logger.info("Creating Lucene context for {} in {} mode", indexType.getName(), indexMode);
     final String luceneIndexPath = createLuceneIndexDir();
     File indexDir = new File(luceneIndexPath + indexType.getName());
     if (!indexDir.exists() && !indexDir.mkdirs()) {
@@ -37,7 +38,7 @@ public class IndexContextFactory {
       throw new IOException();
     }
     Directory luceneDirectory = FSDirectory.open(indexDir.toPath());
-    logger.info("Lucene context : {}", luceneDirectory);
+    logger.info("Lucene directory : {}", luceneDirectory);
 
     Analyzer analyzer = new StandardAnalyzer();
     if (IndexMode.INDEXING.equals(indexMode)) {

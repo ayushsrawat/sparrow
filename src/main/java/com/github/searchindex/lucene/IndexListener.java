@@ -37,7 +37,6 @@ public class IndexListener {
           IndexContext context = contextFactory.createIndexContext(indexType, IndexMode.INDEXING);
           logger.info("Created index context : {}", context);
           indexer.index(context);
-          logger.info("Finished indexing: {}", indexType.getName());
         } catch (IOException ioe) {
           logger.error("Error indexing {}: {}", indexType.getName(), ioe.getMessage(), ioe);
         }

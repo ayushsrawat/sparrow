@@ -67,17 +67,19 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
         throw new IOException(wordDictionaryTxt + " not found.");
       }
       File file = new File(data.getPath());
+      int count = 0;
       try (IndexWriter writer = context.getWriter(); BufferedReader reader = new BufferedReader(new FileReader(file))) {
         logger.info("Indexing file {}, using writer {}", file, writer);
         writer.deleteAll(); //delete previously indexed data
         String line;
         while ((line = reader.readLine()) != null) {
+          count++;
           String[] row = line.split("\\|");
           if (row.length < 4) {
             logger.error("Skipping malformed line : {}", line);
             continue;
           }
-          logger.info("Indexing row : {}", (Object) row);
+          logger.info("Indexing dictionary row : {}", (Object) row);
           Document document = new Document();
           document.add(new TextField(IndexField.WORD.getName(), row[0], Field.Store.YES));
           document.add(new StringField(IndexField.PARTS_OF_SPEECH.getName(), row[1], Field.Store.YES));
@@ -87,6 +89,7 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
         }
         writer.commit();
       }
+      logger.info("Successfully Indexed {} words", count);
     } catch (IOException ioe) {
       logger.error(ioe.getMessage());
     }
