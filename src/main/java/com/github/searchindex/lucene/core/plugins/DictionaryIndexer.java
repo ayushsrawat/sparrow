@@ -26,9 +26,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,9 +36,6 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
   private static final Logger logger = LoggerFactory.getLogger(DictionaryIndexer.class);
   private static final String WORD_DICTIONARY_TXT = "/data/word-dictionary.txt";
 
-  /**
-   * Source : <a href="https://github.com/lorenza12/English-Words-Definitions-and-Parts-of-Speech/blob/master/wordDictionary.txt">English-Words-Definitions</a>
-   */
   @Override
   public IndexType getIndexType() {
     return IndexType.DICTIONARY;
@@ -66,7 +61,7 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
       if (data == null) {
         throw new IOException(WORD_DICTIONARY_TXT + " not found.");
       }
-      File file = Paths.get(data.toURI()).toFile();
+      File file = new File(data.getPath());
       try (IndexWriter writer = context.getWriter(); BufferedReader reader = new BufferedReader(new FileReader(file))) {
         logger.info("Indexing file {}, using writer {}", file, writer);
         writer.deleteAll(); //delete previously indexed data
@@ -87,7 +82,7 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
         }
         writer.commit();
       }
-    } catch (IOException | URISyntaxException ioe) {
+    } catch (IOException ioe) {
       logger.error(ioe.getMessage());
     }
   }

@@ -10,24 +10,30 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
 
 @Component
+@PropertySource("classpath:index.properties")
 public class IndexContextFactory {
 
   private static final Logger logger = LoggerFactory.getLogger(IndexContextFactory.class);
-  private static final String LUCENE_INDEX_DIR = System.getProperty("user.home") + "/lucene/search-index/";
+
+  @Value("${index.path}")
+  private String indexPath;
 
   /**
    * Context to save the lucene indexes in ~/lucene/search-index/{index-name}
    */
   public IndexContext createIndexContext(IndexType indexType, IndexMode indexMode) throws IOException {
-    File indexDir = new File(LUCENE_INDEX_DIR + indexType.getName());
+    final String luceneIndexPath = createLuceneIndexDir();
+    File indexDir = new File(luceneIndexPath + indexType.getName());
     if (!indexDir.exists() && !indexDir.mkdirs()) {
-      logger.error("Error creating index directory {}", LUCENE_INDEX_DIR);
+      logger.error("Error creating index directory {}", luceneIndexPath);
       throw new IOException();
     }
     Directory luceneDirectory = FSDirectory.open(indexDir.toPath());
@@ -50,6 +56,10 @@ public class IndexContextFactory {
       .directory(luceneDirectory)
       .analyzer(analyzer)
       .build();
+  }
+
+  private String createLuceneIndexDir() {
+    return System.getProperty("user.home") + indexPath;
   }
 
 }

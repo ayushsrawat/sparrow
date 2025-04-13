@@ -24,7 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 //@Service
-//work in progress
+//work is in progress
 public class ShakespeareIndexer implements Indexer<String> {
 
   private static final Logger logger = LoggerFactory.getLogger(ShakespeareIndexer.class);

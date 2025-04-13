@@ -24,7 +24,7 @@ public class IndexListener {
 
   private final Logger logger = LoggerFactory.getLogger(IndexListener.class);
   private final List<Indexer<?>> indexers;
-  private final IndexContextFactory indexFactory;
+  private final IndexContextFactory contextFactory;
   private final ExecutorService executorService;
 
   @PostConstruct
@@ -34,7 +34,7 @@ public class IndexListener {
         IndexType indexType = indexer.getIndexType();
         logger.info("Initializing Indexer : {}", indexType.getName());
         try {
-          IndexContext context = indexFactory.createIndexContext(indexType, IndexMode.INDEXING);
+          IndexContext context = contextFactory.createIndexContext(indexType, IndexMode.INDEXING);
           logger.info("Created index context : {}", context);
           indexer.index(context);
           logger.info("Finished indexing: {}", indexType.getName());
