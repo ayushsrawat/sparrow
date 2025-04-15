@@ -57,6 +57,8 @@ public class TweetsIndexer implements Indexer<Tweet> {
 
   @Value("${tweet.output.json.path}")
   private String twitterDatasetDirectory;
+  @Value("${twitter.index.batch.commit.size}")
+  private Integer maxBatchCommitSize;
 
   @Override
   public IndexType getIndexType() {
@@ -108,6 +110,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
       List<Tweet> tweets = objectMapper
         .readValue(twitterDataset, new TypeReference<>() {});
       logger.info("Loaded {} tweets from {}", tweets.size(), twitterDataset.getName());
+      int batch = 0;
       for (Tweet tweet : tweets) {
         // this loop runs for 100_000+ times; can consider a better approach?
         logger.info("Indexing tweet >> {} : {} ", tweet.getUsername(), tweet.getTweet());
@@ -138,6 +141,10 @@ public class TweetsIndexer implements Indexer<Tweet> {
           document.add(new IntField(IndexField.RETWEETS.getName(), tweet.getRetweets(), Field.Store.YES));
         }
         context.getWriter().addDocument(document);
+        if (++batch > maxBatchCommitSize) {
+          context.getWriter().commit();
+          batch = 0;
+        }
       }
       context.getWriter().commit();
       return tweets.size();
