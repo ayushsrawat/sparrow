@@ -22,12 +22,21 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.CollectorManager;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.SimpleCollector;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.util.Bits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,6 +47,7 @@ import java.io.File;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -160,31 +170,111 @@ public class TweetsIndexer implements Indexer<Tweet> {
       IndexSearcher searcher = new IndexSearcher(reader);
       QueryParser parser = new QueryParser(IndexField.TWEET.getName(), context.getAnalyzer());
       Query query = parser.parse(searchQuery.getQuery());
-      logger.info("Searching for the query : {}, using searcher : {}", query, searcher);
 
+      logger.info("Searching for the query : {}, using searcher : {}", query, searcher);
       TopDocs topDocs = searcher.search(query, 10);
       List<Tweet> result = new ArrayList<>();
       for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
         Document document = searcher.storedFields().document(scoreDoc.doc);
-        Tweet tweet = Tweet.builder()
-          .tweetId(parseUtil.parseLong(document.get(IndexField.TWEET_ID.getName())))
-          .username(document.get(IndexField.USERNAME.getName()))
-          .tweet(document.get(IndexField.TWEET.getName()))
-          .tweetDate(dateUtil.convertToLocalDateTime(
-            parseUtil.parseLong(document.get(IndexField.DATE.getName()))))
-          .fullName(document.get(IndexField.FULL_NAME.getName()))
-          .url(document.get(IndexField.URL.getName()))
-          .views(parseUtil.parseInt(document.get(IndexField.VIEWS.getName())))
-          .likes(parseUtil.parseInt(document.get(IndexField.LIKES.getName())))
-          .retweets(parseUtil.parseInt(document.get(IndexField.RETWEETS.getName())))
-          .build();
-        result.add(tweet);
+        result.add(extractTweetFromDocument(document));
       }
       logger.info("Searched {} tweets for the query {}.", result.size(), searchQuery.getQuery());
       return result;
     } catch (IOException | ParseException e) {
       logger.error("Search failed : {}", e.getMessage());
       return List.of();
+    }
+  }
+
+  private Tweet extractTweetFromDocument(Document document) {
+    return Tweet.builder()
+      .tweetId(parseUtil.parseLong(document.get(IndexField.TWEET_ID.getName())))
+      .username(document.get(IndexField.USERNAME.getName()))
+      .tweet(document.get(IndexField.TWEET.getName()))
+      .tweetDate(dateUtil.convertToLocalDateTime(
+        parseUtil.parseLong(document.get(IndexField.DATE.getName()))))
+      .fullName(document.get(IndexField.FULL_NAME.getName()))
+      .url(document.get(IndexField.URL.getName()))
+      .views(parseUtil.parseInt(document.get(IndexField.VIEWS.getName())))
+      .likes(parseUtil.parseInt(document.get(IndexField.LIKES.getName())))
+      .retweets(parseUtil.parseInt(document.get(IndexField.RETWEETS.getName())))
+      .build();
+  }
+
+  public List<Tweet> getIndexedTweets(IndexContext context) {
+    List<Tweet> indexedTweets = new ArrayList<>();
+    try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
+      for (LeafReaderContext leafContext : reader.leaves()) {
+        LeafReader leafReader = leafContext.reader();
+        Bits liveDocs = leafReader.getLiveDocs();
+        for (int i = 0; i < leafReader.maxDoc(); i++) {
+          if (liveDocs == null || liveDocs.get(i)) {
+            Document document = leafReader.storedFields().document(i);
+            indexedTweets.add(extractTweetFromDocument(document));
+          }
+        }
+      }
+      logger.info("Total Indexed Tweets (leaf reader): {}", indexedTweets.size());
+    } catch (IOException ioe) {
+      logger.error("Error reading index: {}", ioe.getMessage(), ioe);
+    }
+    return indexedTweets;
+  }
+
+  public List<Tweet> searchByUsername(IndexContext context, String username) {
+    try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      Query query = new TermQuery(new Term(IndexField.USERNAME.getName(), username));
+      logger.info("Tweets hit count {} by username {}", searcher.count(query), username);
+      return searcher.search(query, new CollectorManager<TweetsCollector, List<Tweet>>() {
+        @Override
+        public TweetsCollector newCollector() {
+          return new TweetsCollector();
+        }
+
+        @Override
+        public List<Tweet> reduce(Collection<TweetsCollector> collectors) {
+          List<Tweet> tweetsByUser = new ArrayList<>();
+          for (TweetsCollector collector : collectors) {
+            tweetsByUser.addAll(collector.getResults());
+          }
+          return tweetsByUser;
+        }
+      });
+
+    } catch (IOException ioe) {
+      logger.error("Error reading index for user {}: {}", username, ioe.getMessage(), ioe);
+      return List.of();
+    }
+  }
+
+  private final class TweetsCollector extends SimpleCollector {
+    private LeafReaderContext context;
+    private Scorable scorer;
+
+    @Getter
+    private final List<Tweet> results = new ArrayList<>();
+
+    @Override
+    public void doSetNextReader(LeafReaderContext context) {
+      this.context = context;
+    }
+
+    @Override
+    public void setScorer(Scorable scorer) {
+      this.scorer = scorer;
+    }
+
+    @Override
+    public void collect(int docId) throws IOException {
+      Document doc = context.reader().storedFields().document(docId);
+      results.add(extractTweetFromDocument(doc));
+      logger.info("Score for docId {}: {}", docId, scorer.score());
+    }
+
+    @Override
+    public ScoreMode scoreMode() {
+      return ScoreMode.COMPLETE;
     }
   }
 

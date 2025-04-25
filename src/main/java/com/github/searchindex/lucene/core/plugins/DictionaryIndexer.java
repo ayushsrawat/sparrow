@@ -108,6 +108,7 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
       TopDocs topDocs = searcher.search(query, 10);
       List<DictionaryEntry> result = new ArrayList<>();
       for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+        logger.info("Explanation : {}", searcher.explain(query, scoreDoc.doc));
         Document document = searcher.storedFields().document(scoreDoc.doc);
         DictionaryEntry entry = DictionaryEntry.builder()
           .word(document.get(IndexField.WORD.getName()))

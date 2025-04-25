@@ -11,3 +11,9 @@ GET localhost:8080/api/search/twitter?q=Jumped
 
 ###
 GET localhost:8080/api/search/twitter?q=ipl
+
+###
+GET localhost:8080/api/search/user/azulfi
+
+###
+GET localhost:8080/api/search/twitter/count

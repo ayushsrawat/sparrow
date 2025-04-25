@@ -31,4 +31,24 @@ public class TwitterServiceImpl implements TwitterService {
     }
   }
 
+  @Override
+  public List<Tweet> searchByUsername(String username) {
+    try {
+      IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING);
+      return tweetsIndexer.searchByUsername(context, username);
+    } catch (IOException ioe) {
+      throw new RuntimeException(ioe.getMessage());
+    }
+  }
+
+  @Override
+  public Integer getAllIndexedTweets() {
+    try {
+      IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING);
+      return tweetsIndexer.getIndexedTweets(context).size();
+    } catch (IOException ioe) {
+      throw new RuntimeException(ioe.getMessage());
+    }
+  }
+
 }

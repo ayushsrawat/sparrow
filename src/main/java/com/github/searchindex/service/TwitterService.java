@@ -8,4 +8,8 @@ public interface TwitterService {
 
   List<Tweet> search(String query);
 
+  List<Tweet> searchByUsername(String username);
+
+  Integer getAllIndexedTweets();
+
 }
