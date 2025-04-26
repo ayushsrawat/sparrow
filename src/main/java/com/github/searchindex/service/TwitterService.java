@@ -1,6 +1,6 @@
 package com.github.searchindex.service;
 
-import com.github.searchindex.lucene.core.entry.Tweet;
+import com.github.searchindex.lucene.entry.Tweet;
 
 import java.util.List;
 

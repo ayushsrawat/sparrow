@@ -1,4 +1,4 @@
-package com.github.searchindex.lucene.core;
+package com.github.searchindex.lucene;
 
 public enum IndexMode {
   INDEXING, SEARCHING

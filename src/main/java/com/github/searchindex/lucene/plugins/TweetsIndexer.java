@@ -1,17 +1,14 @@
-package com.github.searchindex.lucene.core.plugins;
+package com.github.searchindex.lucene.plugins;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.searchindex.lucene.IndexContext;
-import com.github.searchindex.lucene.core.IndexType;
-import com.github.searchindex.lucene.core.Indexer;
-import com.github.searchindex.lucene.core.entry.SearchQuery;
-import com.github.searchindex.lucene.core.entry.Tweet;
-import com.github.searchindex.lucene.core.tools.DateUtil;
-import com.github.searchindex.lucene.core.tools.ParseUtil;
-import com.github.searchindex.lucene.core.tools.TweetNormalizer;
+import com.github.searchindex.lucene.IndexType;
+import com.github.searchindex.lucene.Indexer;
+import com.github.searchindex.lucene.TweetNormalizer;
+import com.github.searchindex.lucene.entry.SearchQuery;
+import com.github.searchindex.lucene.entry.Tweet;
+import com.github.searchindex.lucene.tools.DateUtil;
+import com.github.searchindex.lucene.tools.ParseUtil;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
@@ -39,11 +36,11 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.Bits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -51,22 +48,26 @@ import java.util.Collection;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 @PropertySource("classpath:index.properties")
 public class TweetsIndexer implements Indexer<Tweet> {
 
   private static final Logger logger = LoggerFactory.getLogger(TweetsIndexer.class);
-  private static final String DATASET_V1_FILENAME = "twitter-dataset-v1.json";
-  private static final String DATASET_V2_FILENAME = "twitter-dataset-v2.json";
-  private static final String DATASET_V3_FILENAME = "twitter-dataset-v3.json";
 
   private final TweetNormalizer tweetNormalizer;
-  private final ObjectMapper objectMapper;
   private final DateUtil dateUtil;
   private final ParseUtil parseUtil;
 
-  @Value("${tweet.output.json.path}")
-  private String twitterDatasetDirectory;
+  public TweetsIndexer(
+    @Value("${normalizer.mode.db}") boolean useDbNormalizer,
+    @Qualifier("tweetDbNormalizer") TweetNormalizer dbNormalizer,
+    @Qualifier("tweetJsonNormalizer") TweetNormalizer jsonNormalizer,
+    DateUtil dateUtil, ParseUtil parseUtil
+  ) {
+    this.tweetNormalizer = useDbNormalizer ? dbNormalizer : jsonNormalizer;
+    this.dateUtil = dateUtil;
+    this.parseUtil = parseUtil;
+  }
+
   @Value("${twitter.index.batch.commit.size}")
   private Integer maxBatchCommitSize;
 
@@ -99,10 +100,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
     try {
       tweetNormalizer.normalizeCsv();
       context.getWriter().deleteAll();
-      int sum = 0;
-      sum += indexTwitterDataset(context, DATASET_V1_FILENAME);
-      sum += indexTwitterDataset(context, DATASET_V2_FILENAME);
-      sum += indexTwitterDataset(context, DATASET_V3_FILENAME);
+      int sum = indexTwitterDataset(context, tweetNormalizer.getNormalizedTweets());
       context.getWriter().close();
       logger.info("Successfully Indexed {} tweets", sum);
     } catch (IOException ioe) {
@@ -110,16 +108,8 @@ public class TweetsIndexer implements Indexer<Tweet> {
     }
   }
 
-  private int indexTwitterDataset(IndexContext context, String datasetFileName) {
-    File twitterDataset = new File(twitterDatasetDirectory + "/tweets/" + datasetFileName);
-    if (!twitterDataset.exists()) {
-      logger.error("{} not found.", twitterDataset.getAbsolutePath());
-      return 0;
-    }
+  private int indexTwitterDataset(IndexContext context, List<Tweet> tweets) {
     try {
-      List<Tweet> tweets = objectMapper
-        .readValue(twitterDataset, new TypeReference<>() {});
-      logger.info("Loaded {} tweets from {}", tweets.size(), twitterDataset.getName());
       int batch = 0;
       for (Tweet tweet : tweets) {
         // this loop runs for 100_000+ times; can consider a better approach?
@@ -159,8 +149,8 @@ public class TweetsIndexer implements Indexer<Tweet> {
       context.getWriter().commit();
       return tweets.size();
     } catch (IOException ioe) {
-      logger.error("Failed to read tweets from {}: {}", twitterDataset.getName(), ioe.getMessage());
-      return 0;
+      logger.error("Failed to index {} tweets", tweets.size(), ioe);
+      return -1;
     }
   }
 

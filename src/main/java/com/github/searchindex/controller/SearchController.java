@@ -1,7 +1,7 @@
 package com.github.searchindex.controller;
 
-import com.github.searchindex.lucene.core.entry.DictionaryEntry;
-import com.github.searchindex.lucene.core.entry.Tweet;
+import com.github.searchindex.lucene.entry.DictionaryEntry;
+import com.github.searchindex.lucene.entry.Tweet;
 import com.github.searchindex.service.DictionaryService;
 import com.github.searchindex.service.TwitterService;
 import lombok.RequiredArgsConstructor;

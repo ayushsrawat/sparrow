@@ -1,7 +1,5 @@
 package com.github.searchindex.lucene;
 
-import com.github.searchindex.lucene.core.IndexMode;
-import com.github.searchindex.lucene.core.IndexType;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;

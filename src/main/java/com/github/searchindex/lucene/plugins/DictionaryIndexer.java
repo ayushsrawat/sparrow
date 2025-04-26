@@ -1,10 +1,10 @@
-package com.github.searchindex.lucene.core.plugins;
+package com.github.searchindex.lucene.plugins;
 
 import com.github.searchindex.lucene.IndexContext;
-import com.github.searchindex.lucene.core.IndexType;
-import com.github.searchindex.lucene.core.Indexer;
-import com.github.searchindex.lucene.core.entry.DictionaryEntry;
-import com.github.searchindex.lucene.core.entry.SearchQuery;
+import com.github.searchindex.lucene.IndexType;
+import com.github.searchindex.lucene.Indexer;
+import com.github.searchindex.lucene.entry.DictionaryEntry;
+import com.github.searchindex.lucene.entry.SearchQuery;
 import lombok.Getter;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -80,7 +80,7 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
             logger.error("Skipping malformed line : {}", line);
             continue;
           }
-          logger.info("Indexing dictionary row : {}", (Object) row);
+          // logger.info("Indexing dictionary row : {}", (Object) row);
           Document document = new Document();
           document.add(new TextField(IndexField.WORD.getName(), row[0], Field.Store.YES));
           document.add(new StringField(IndexField.PARTS_OF_SPEECH.getName(), row[1], Field.Store.YES));

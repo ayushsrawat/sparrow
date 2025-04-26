@@ -1,7 +1,6 @@
-package com.github.searchindex.lucene.core;
+package com.github.searchindex.lucene;
 
-import com.github.searchindex.lucene.IndexContext;
-import com.github.searchindex.lucene.core.entry.SearchQuery;
+import com.github.searchindex.lucene.entry.SearchQuery;
 
 import java.util.List;
 

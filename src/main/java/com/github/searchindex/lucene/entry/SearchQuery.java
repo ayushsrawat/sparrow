@@ -1,4 +1,4 @@
-package com.github.searchindex.lucene.core.entry;
+package com.github.searchindex.lucene.entry;
 
 import lombok.Builder;
 import lombok.Getter;

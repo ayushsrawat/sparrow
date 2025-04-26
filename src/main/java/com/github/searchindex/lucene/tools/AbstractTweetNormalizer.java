@@ -1,9 +1,7 @@
-package com.github.searchindex.lucene.core.tools;
+package com.github.searchindex.lucene.tools;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.searchindex.lucene.core.entry.Tweet;
-import lombok.RequiredArgsConstructor;
+import com.github.searchindex.lucene.TweetNormalizer;
+import com.github.searchindex.lucene.entry.Tweet;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -11,33 +9,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 
-/**
- * normalize the tweets data, in order to make it parsable <br>
- * TweetNormalizer reads the csv datasets and convert them to parsable json dataset
- */
-@Service
-@RequiredArgsConstructor
 @PropertySource("classpath:index.properties")
-public class TweetNormalizer {
+public abstract class AbstractTweetNormalizer implements TweetNormalizer {
 
-  private static final Logger logger = LoggerFactory.getLogger(TweetNormalizer.class);
+  private static final Logger logger = LoggerFactory.getLogger(AbstractTweetNormalizer.class);
+  private final ParseUtil parseUtil;
 
-  @Value("${tweet.output.json.path}")
-  private String twitterDatasetDirectory;
+  public AbstractTweetNormalizer(ParseUtil parseUtil) {
+    this.parseUtil = parseUtil;
+  }
 
   @Value("${twitter.dataset.v1.csv.path}")
   private String twitterDatasetV1;
@@ -48,66 +36,10 @@ public class TweetNormalizer {
   @Value("${twitter.dataset.v3.csv.path}")
   private String twitterDatasetV3;
 
-  private final ObjectMapper objectMapper;
-  private final ExecutorService executorService;
-  private final ParseUtil parseUtil;
-
-  public void normalizeCsv() {
-    CompletableFuture<Void> f1 = CompletableFuture.runAsync(() -> {
-      List<Tweet> tweets = normalizeTwitterV1Dataset();
-      if (!tweets.isEmpty()) {
-        saveTweetsToJson(tweets, "twitter-dataset-v1.json");
-      }
-    }, executorService);
-    CompletableFuture<Void> f2 = CompletableFuture.runAsync(() -> {
-      List<Tweet> tweets = normalizeTwitterV2Dataset();
-      if (!tweets.isEmpty()) {
-        saveTweetsToJson(tweets, "twitter-dataset-v2.json");
-      }
-    }, executorService);
-    CompletableFuture<Void> f3 = CompletableFuture.runAsync(() -> {
-      List<Tweet> tweets = normalizeTwitterV3Dataset();
-      if (!tweets.isEmpty()) {
-        saveTweetsToJson(tweets, "twitter-dataset-v3.json");
-      }
-    }, executorService);
-    CompletableFuture.allOf(f1, f2, f3).join();
-    //todo : can't see the logs of f2, and f3 because of f1 thread
-    logger.info("Normalized tweets successfully!");
-  }
-
-  private void saveTweetsToJson(List<Tweet> tweets, String filename) {
-    Path resource = Paths.get(twitterDatasetDirectory);
-    if (!resource.toFile().exists()) {
-      logger.error("{} dir not found! Please change project resource path {} in {} ", twitterDatasetDirectory, "tweet.output.json.path", "index.properties");
-      return;
-    }
-
-    File tweetsJsonFile = resource.resolve("tweets").resolve(filename).toFile();
-    try {
-      File parent = tweetsJsonFile.getParentFile();
-      if (!parent.exists() && !parent.mkdirs()) {
-        logger.error("Error creating directory for file {}", parent);
-        return;
-      }
-      objectMapper
-        .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-        .writerWithDefaultPrettyPrinter()
-        .writeValue(tweetsJsonFile, tweets);
-      logger.info("Saved {} tweets to {}", tweets.size(), tweetsJsonFile.getAbsolutePath());
-    } catch (IOException e) {
-      logger.error("Error saving {} tweets to {} file : {} ", tweets.size(), filename, e.getMessage());
-    }
-  }
-
-  private List<Tweet> normalizeTwitterV1Dataset() {
+  protected List<Tweet> normalizeTwitterV1Dataset() {
     try (InputStream resourceAsStream = getClass().getResourceAsStream(twitterDatasetV1)) {
       if (resourceAsStream == null) {
         logger.error("v1 dataset not found.");
-        return List.of();
-      }
-      if (this.getClass().getResource(twitterDatasetV1.replace(".csv", ".json")) != null) {
-        logger.warn("Normalized file found in resources! Skipping normalizing v1 dataset");
         return List.of();
       }
       List<Tweet> tweets = new ArrayList<>();
@@ -135,14 +67,10 @@ public class TweetNormalizer {
     }
   }
 
-  private List<Tweet> normalizeTwitterV2Dataset() {
+  protected List<Tweet> normalizeTwitterV2Dataset() {
     try (InputStream resourceAsStream = getClass().getResourceAsStream(twitterDatasetV2)) {
       if (resourceAsStream == null) {
         logger.error("v2 dataset not found.");
-        return List.of();
-      }
-      if (this.getClass().getResource(twitterDatasetV2.replace(".csv", ".json")) != null) {
-        logger.warn("Normalized file found in resources! Skipping normalizing v2 dataset");
         return List.of();
       }
       List<Tweet> tweets = new ArrayList<>();
@@ -175,14 +103,10 @@ public class TweetNormalizer {
     }
   }
 
-  private List<Tweet> normalizeTwitterV3Dataset() {
+  protected List<Tweet> normalizeTwitterV3Dataset() {
     InputStream resourceAsStream = getClass().getResourceAsStream(twitterDatasetV3);
     if (resourceAsStream == null) {
       logger.error("v3 dataset not found.");
-      return List.of();
-    }
-    if (this.getClass().getResource(twitterDatasetV3.replace(".csv", ".json")) != null) {
-      logger.warn("Normalized file found in resources! Skipping normalizing v3 dataset");
       return List.of();
     }
     List<Tweet> tweets = new ArrayList<>();

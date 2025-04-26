@@ -2,11 +2,11 @@ package com.github.searchindex.service.impl;
 
 import com.github.searchindex.lucene.IndexContext;
 import com.github.searchindex.lucene.IndexContextFactory;
-import com.github.searchindex.lucene.core.IndexMode;
-import com.github.searchindex.lucene.core.IndexType;
-import com.github.searchindex.lucene.core.entry.SearchQuery;
-import com.github.searchindex.lucene.core.entry.Tweet;
-import com.github.searchindex.lucene.core.plugins.TweetsIndexer;
+import com.github.searchindex.lucene.IndexMode;
+import com.github.searchindex.lucene.IndexType;
+import com.github.searchindex.lucene.entry.SearchQuery;
+import com.github.searchindex.lucene.entry.Tweet;
+import com.github.searchindex.lucene.plugins.TweetsIndexer;
 import com.github.searchindex.service.TwitterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

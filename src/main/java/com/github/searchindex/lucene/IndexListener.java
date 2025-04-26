@@ -1,8 +1,5 @@
 package com.github.searchindex.lucene;
 
-import com.github.searchindex.lucene.core.IndexMode;
-import com.github.searchindex.lucene.core.IndexType;
-import com.github.searchindex.lucene.core.Indexer;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.AllArgsConstructor;

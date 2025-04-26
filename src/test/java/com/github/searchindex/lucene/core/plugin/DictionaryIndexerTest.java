@@ -2,11 +2,11 @@ package com.github.searchindex.lucene.core.plugin;
 
 import com.github.searchindex.lucene.IndexContext;
 import com.github.searchindex.lucene.IndexContextFactory;
-import com.github.searchindex.lucene.core.IndexMode;
-import com.github.searchindex.lucene.core.IndexType;
-import com.github.searchindex.lucene.core.entry.DictionaryEntry;
-import com.github.searchindex.lucene.core.entry.SearchQuery;
-import com.github.searchindex.lucene.core.plugins.DictionaryIndexer;
+import com.github.searchindex.lucene.IndexMode;
+import com.github.searchindex.lucene.IndexType;
+import com.github.searchindex.lucene.entry.DictionaryEntry;
+import com.github.searchindex.lucene.entry.SearchQuery;
+import com.github.searchindex.lucene.plugins.DictionaryIndexer;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

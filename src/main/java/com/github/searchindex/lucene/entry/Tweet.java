@@ -1,4 +1,4 @@
-package com.github.searchindex.lucene.core.entry;
+package com.github.searchindex.lucene.entry;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
