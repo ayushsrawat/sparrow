@@ -16,7 +16,7 @@ public class TweetUtil {
       .url(t.getUrl())
       .likes(t.getLikes() == null ? 0 : t.getLikes())
       .views(t.getViews() == null ? 0 : t.getViews())
-      .retweets(t.getRetweets() == null ? 0 : t.getViews())
+      .retweets(t.getRetweets() == null ? 0 : t.getRetweets())
       .creationAt(t.getTweetDate())
       .build();
   }
@@ -29,7 +29,7 @@ public class TweetUtil {
       .tweet(t.getTweet())
       .likes(t.getLikes() == null ? 0 : t.getLikes())
       .views(t.getViews() == null ? 0 : t.getViews())
-      .retweets(t.getRetweets() == null ? 0 : t.getViews())
+      .retweets(t.getRetweets() == null ? 0 : t.getRetweets())
       .tweetDate(t.getCreationAt())
       .build();
   }

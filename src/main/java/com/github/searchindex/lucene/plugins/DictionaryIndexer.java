@@ -26,10 +26,10 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,6 +41,8 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
 
   @Value("${word.dictionary.txt}")
   private String wordDictionaryTxt;
+  @Value("${dataset.path}")
+  protected String datasetDirectory;
 
   @Override
   public IndexType getIndexType() {
@@ -63,14 +65,16 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
   @Override
   public void index(IndexContext context) {
     try {
-      URL data = this.getClass().getResource(wordDictionaryTxt);
-      if (data == null) {
-        throw new IOException(wordDictionaryTxt + " not found.");
+      Path dataPath = Paths.get(datasetDirectory + wordDictionaryTxt);
+      if (!Files.exists(dataPath)) {
+        logger.error("{} dataset not found.", dataPath);
+        return;
       }
-      File file = new File(data.getPath());
       int count = 0;
-      try (IndexWriter writer = context.getWriter(); BufferedReader reader = new BufferedReader(new FileReader(file))) {
-        logger.info("Indexing file {}, using writer {}", file, writer);
+      try (IndexWriter writer = context.getWriter();
+           BufferedReader reader = Files.newBufferedReader(dataPath)
+      ) {
+        logger.info("Indexing file {}, using writer {}", dataPath, writer);
         writer.deleteAll(); //delete previously indexed data
         String line;
         while ((line = reader.readLine()) != null) {

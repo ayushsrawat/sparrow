@@ -3,6 +3,7 @@ package com.github.searchindex.lucene.tools;
 import com.github.searchindex.lucene.entry.Tweet;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -10,25 +11,21 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class TweetBatchSaver {
 
   private static final Logger logger = LoggerFactory.getLogger(TweetBatchSaver.class);
+  private static final Integer TWEET_BATCH_SIZE = 2500;
   private final EntityManager entityManager;
   private final TweetUtil tweetUtil;
 
-  public TweetBatchSaver(EntityManager entityManager, TweetUtil tweetUtil) {
-    this.entityManager = entityManager;
-    this.tweetUtil = tweetUtil;
-  }
-
   @Transactional
-  public int saveAllInBatch(List<Tweet> tweets) {
+  public void saveAllInBatch(List<Tweet> tweets, String ignore) {
     long start = System.currentTimeMillis();
-    int batchSize = 2000;
     for (int i = 0; i < tweets.size(); i++) {
       entityManager.persist(tweetUtil.toTweetData(tweets.get(i)));
 
-      if (i > 0 && i % batchSize == 0) {
+      if (i > 0 && (i + 1) % TWEET_BATCH_SIZE == 0) {
         entityManager.flush();
         entityManager.clear();
         logger.info("Flushed and cleared batch at {}", i);
@@ -39,7 +36,6 @@ public class TweetBatchSaver {
 
     long end = System.currentTimeMillis();
     logger.info("Batch insert took {} ms for {} tweets", (end - start), tweets.size());
-    return tweets.size();
   }
 
 }

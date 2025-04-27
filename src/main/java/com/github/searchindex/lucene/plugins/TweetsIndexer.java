@@ -98,7 +98,9 @@ public class TweetsIndexer implements Indexer<Tweet> {
   @Override
   public void index(IndexContext context) {
     try {
-      tweetNormalizer.normalizeCsv();
+      if (tweetNormalizer.needsNormalization()) {
+        tweetNormalizer.normalizeCsv();
+      }
       context.getWriter().deleteAll();
       int sum = indexTwitterDataset(context, tweetNormalizer.getNormalizedTweets());
       context.getWriter().close();
@@ -112,7 +114,6 @@ public class TweetsIndexer implements Indexer<Tweet> {
     try {
       int batch = 0;
       for (Tweet tweet : tweets) {
-        // this loop runs for 100_000+ times; can consider a better approach?
         logger.info("Indexing tweet >> {} : {} ", tweet.getUsername(), tweet.getTweet());
         Document document = new Document();
         document.add(new LongField(IndexField.TWEET_ID.getName(), tweet.getTweetId(), Field.Store.YES));

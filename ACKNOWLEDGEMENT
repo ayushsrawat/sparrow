@@ -1,0 +1,15 @@
+Acknowledgements
+
+The following datasets were used in this project:
+
+1. English Word Definitions and Parts of Speech
+    - https://github.com/lorenza12/English-Words-Definitions-and-Parts-of-Speech/blob/master/wordDictionary.txt
+2. Twitter Datasets:
+    - https://www.kaggle.com/datasets/goyaladi/twitter-dataset?select=twitter_dataset.csv
+    - https://github.com/philipphager/twitter-dataset
+    - https://github.com/shaypal5/awesome-twitter-data
+    - https://github.com/luminati-io/Twitter-X-dataset-samples/tree/main
+    - https://raw.githubusercontent.com/karkum/lucene-twitter-demo/refs/heads/master/tweets_small.csv
+    - https://www.kaggle.com/datasets/kazanova/sentiment140/data
+
+Thanks to these sources for providing valuable data for indexing.

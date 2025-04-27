@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,18 +32,22 @@ public class TweetDBNormalizer extends AbstractTweetNormalizer {
 
   @Override
   public void normalizeCsv() {
-    List<Tweet> tweets = new ArrayList<>(); // only normalize if it isn't in the database!!
-    tweets.addAll(normalizeTwitterV1Dataset()); // run these three in parallel
-    tweets.addAll(normalizeTwitterV2Dataset());
-    tweets.addAll(normalizeTwitterV3Dataset());
-
-    int insertedCount = tweetBatchSaver.saveAllInBatch(tweets);
-    logger.info("Successfully inserted {} tweets into the database", insertedCount);
+    // only normalize if it isn't in the database!!
+    int total = 0;
+    total += normalizeTwitterDataset(tweetBatchSaver::saveAllInBatch, twitterDatasetV1);
+    total += normalizeTwitterDataset(tweetBatchSaver::saveAllInBatch, twitterDatasetV2);
+    total += normalizeTwitterDataset(tweetBatchSaver::saveAllInBatch, twitterDatasetV3);
+    logger.info("Successfully inserted {} tweets into the database", total);
   }
 
   @Override
   public List<Tweet> getNormalizedTweets() {
     return tweetRepository.findAll().stream().map(tweetUtil::toTweet).toList();
+  }
+
+  @Override
+  public boolean needsNormalization() {
+    return tweetRepository.count() <= 100_000;
   }
 
 }
