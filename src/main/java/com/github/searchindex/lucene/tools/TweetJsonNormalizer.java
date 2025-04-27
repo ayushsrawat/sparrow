@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -48,6 +49,7 @@ public class TweetJsonNormalizer extends AbstractTweetNormalizer {
 
   @Override
   public void normalizeCsv() {
+    deleteExistingJsonDataset();
     if (parallelExecution) {
       CompletableFuture<Integer> f1 = CompletableFuture.supplyAsync(() ->
         normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV1), executorService);
@@ -77,22 +79,40 @@ public class TweetJsonNormalizer extends AbstractTweetNormalizer {
    */
   private void saveTweetsToJson(List<Tweet> tweets, String filename) {
     Path outputPath = Paths.get(datasetDirectory + "/tweets/json" + filename);
-    if (Files.exists(outputPath) && !outputPath.toFile().delete()) {
-      logger.info("Error deleting the existing file {}", outputPath.toAbsolutePath());
-      return;
-    }
     try {
-      if (!outputPath.toFile().createNewFile()) {
-        logger.info("Error creating new output file {}", outputPath.toAbsolutePath());
+      if (Files.exists(outputPath) && !Files.deleteIfExists(outputPath)) {
+        logger.warn("Failed to delete existing file: {}", outputPath.toAbsolutePath());
       }
+      Files.createDirectories(outputPath.getParent());
       objectMapper
         .setSerializationInclusion(JsonInclude.Include.NON_NULL)
         .writerWithDefaultPrettyPrinter()
         .writeValue(outputPath.toFile(), tweets);
       logger.info("Saved {} tweets to {}", tweets.size(), outputPath.toAbsolutePath());
     } catch (IOException e) {
-      logger.error("Error saving {} tweets to {} file : {} ", tweets.size(), filename, e.getMessage());
-      throw new RuntimeException(e.getMessage());
+      logger.error("Error saving {} tweets to {} file : {} ", tweets.size(), outputPath, e.getMessage());
+      throw new RuntimeException("Failed to save tweets to JSON", e);
+    }
+  }
+
+  private void deleteExistingJsonDataset() {
+    Path outputPath = Paths.get(datasetDirectory, "tweets", "json");
+    try {
+      if (Files.exists(outputPath) && Files.isDirectory(outputPath)) {
+        try (Stream<Path> path = Files.walk(outputPath)) {
+          path.sorted(Comparator.reverseOrder())
+            .forEach(p -> {
+              try {
+                Files.delete(p);
+              } catch (IOException ioe) {
+                logger.error("Failed to delete file: {}", p, ioe);
+              }
+            });
+          logger.info("Successfully deleted json dataset directory: {}", outputPath);
+        }
+      }
+    } catch (IOException ioe) {
+      logger.error("Error while deleting the json dataset directory", ioe);
     }
   }
 
