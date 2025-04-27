@@ -22,10 +22,10 @@ public class TwitterServiceImpl implements TwitterService {
   private final TweetsIndexer tweetsIndexer;
 
   @Override
-  public List<Tweet> search(String query) {
+  public List<Tweet> search(String query, String username) {
     try {
       IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING);
-      return tweetsIndexer.search(context, SearchQuery.builder().query(query).build());
+      return tweetsIndexer.search(context, SearchQuery.builder().query(query).username(username).build());
     } catch (IOException ioe) {
       throw new RuntimeException(ioe.getMessage());
     }

@@ -32,7 +32,6 @@ public class TweetDBNormalizer extends AbstractTweetNormalizer {
 
   @Override
   public void normalizeCsv() {
-    // only normalize if it isn't in the database!!
     int total = 0;
     total += normalizeTwitterDataset(tweetBatchSaver::saveAllInBatch, twitterDatasetV1);
     total += normalizeTwitterDataset(tweetBatchSaver::saveAllInBatch, twitterDatasetV2);

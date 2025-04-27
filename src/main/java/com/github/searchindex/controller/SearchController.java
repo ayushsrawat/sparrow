@@ -28,8 +28,10 @@ public class SearchController {
   }
 
   @GetMapping("/twitter")
-  public ResponseEntity<List<Tweet>> tweetSearch(@RequestParam("q") String query) {
-    return ResponseEntity.ok(twitterService.search(query));
+  public ResponseEntity<List<Tweet>> tweetSearch(
+    @RequestParam(value = "q") String query,
+    @RequestParam(value = "from", required = false) String username) {
+    return ResponseEntity.ok(twitterService.search(query, username));
   }
 
   @GetMapping("/user/{username}")

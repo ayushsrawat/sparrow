@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.resource.ResourceUrlProvider;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +33,6 @@ import java.util.stream.Stream;
 public class TweetJsonNormalizer extends AbstractTweetNormalizer {
 
   private static final Logger logger = LoggerFactory.getLogger(TweetJsonNormalizer.class);
-  private final ResourceUrlProvider mvcResourceUrlProvider;
 
   @Value("${indexing.parallel}")
   private boolean parallelExecution;
@@ -42,16 +40,14 @@ public class TweetJsonNormalizer extends AbstractTweetNormalizer {
   private final ObjectMapper objectMapper;
   private final ExecutorService executorService;
 
-  public TweetJsonNormalizer(ObjectMapper objectMapper, ExecutorService executorService, ParseUtil parseUtil, ResourceUrlProvider mvcResourceUrlProvider) {
+  public TweetJsonNormalizer(ObjectMapper objectMapper, ExecutorService executorService, ParseUtil parseUtil) {
     super(parseUtil);
     this.objectMapper = objectMapper;
     this.executorService = executorService;
-    this.mvcResourceUrlProvider = mvcResourceUrlProvider;
   }
 
   @Override
   public void normalizeCsv() {
-    // this is a costly operation, do this only when if it's not done
     if (parallelExecution) {
       CompletableFuture<Integer> f1 = CompletableFuture.supplyAsync(() ->
         normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV1), executorService);

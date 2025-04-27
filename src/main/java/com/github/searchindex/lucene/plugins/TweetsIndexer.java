@@ -24,15 +24,15 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.CollectorManager;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorable;
-import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.SimpleCollector;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.Bits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,7 +114,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
     try {
       int batch = 0;
       for (Tweet tweet : tweets) {
-        logger.info("Indexing tweet >> {} : {} ", tweet.getUsername(), tweet.getTweet());
+        logger.debug("Indexing tweet >> {} : {} ", tweet.getUsername(), tweet.getTweet());
         Document document = new Document();
         document.add(new LongField(IndexField.TWEET_ID.getName(), tweet.getTweetId(), Field.Store.YES));
         document.add(new StringField(IndexField.USERNAME.getName(), tweet.getUsername(), Field.Store.YES));
@@ -142,7 +142,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
           document.add(new IntField(IndexField.RETWEETS.getName(), tweet.getRetweets(), Field.Store.YES));
         }
         context.getWriter().addDocument(document);
-        if (++batch > maxBatchCommitSize) {
+        if (++batch >= maxBatchCommitSize) {
           context.getWriter().commit();
           batch = 0;
         }
@@ -159,18 +159,17 @@ public class TweetsIndexer implements Indexer<Tweet> {
   public List<Tweet> search(IndexContext context, SearchQuery searchQuery) {
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       IndexSearcher searcher = new IndexSearcher(reader);
+      BooleanQuery.Builder bqb = new BooleanQuery.Builder();
       QueryParser parser = new QueryParser(IndexField.TWEET.getName(), context.getAnalyzer());
-      Query query = parser.parse(searchQuery.getQuery());
-
-      logger.info("Searching for the query : {}, using searcher : {}", query, searcher);
-      TopDocs topDocs = searcher.search(query, 10);
-      List<Tweet> result = new ArrayList<>();
-      for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-        Document document = searcher.storedFields().document(scoreDoc.doc);
-        result.add(extractTweetFromDocument(document));
+      Query textQuery = parser.parse(searchQuery.getQuery());
+      bqb.add(textQuery, BooleanClause.Occur.MUST);
+      if (searchQuery.getUsername() != null) {
+        Query usernameQuery = new TermQuery(new Term(IndexField.USERNAME.getName(), searchQuery.getUsername()));
+        bqb.add(usernameQuery, BooleanClause.Occur.MUST);
       }
-      logger.info("Searched {} tweets for the query {}.", result.size(), searchQuery.getQuery());
-      return result;
+      Query query = bqb.build();
+      logger.info("Searching for the query : {}, using searcher : {}", query, searcher);
+      return searcher.search(query, new TweetCollectorManager());
     } catch (IOException | ParseException e) {
       logger.error("Search failed : {}", e.getMessage());
       return List.of();
@@ -217,25 +216,26 @@ public class TweetsIndexer implements Indexer<Tweet> {
       IndexSearcher searcher = new IndexSearcher(reader);
       Query query = new TermQuery(new Term(IndexField.USERNAME.getName(), username));
       logger.info("Tweets hit count {} by username {}", searcher.count(query), username);
-      return searcher.search(query, new CollectorManager<TweetsCollector, List<Tweet>>() {
-        @Override
-        public TweetsCollector newCollector() {
-          return new TweetsCollector();
-        }
-
-        @Override
-        public List<Tweet> reduce(Collection<TweetsCollector> collectors) {
-          List<Tweet> tweetsByUser = new ArrayList<>();
-          for (TweetsCollector collector : collectors) {
-            tweetsByUser.addAll(collector.getResults());
-          }
-          return tweetsByUser;
-        }
-      });
-
+      return searcher.search(query, new TweetCollectorManager());
     } catch (IOException ioe) {
       logger.error("Error reading index for user {}: {}", username, ioe.getMessage(), ioe);
       return List.of();
+    }
+  }
+
+  private final class TweetCollectorManager implements CollectorManager<TweetsCollector, List<Tweet>> {
+    @Override
+    public TweetsCollector newCollector() {
+      return new TweetsCollector();
+    }
+
+    @Override
+    public List<Tweet> reduce(Collection<TweetsCollector> collectors) {
+      List<Tweet> tweetsByUser = new ArrayList<>();
+      for (TweetsCollector collector : collectors) {
+        tweetsByUser.addAll(collector.getResults());
+      }
+      return tweetsByUser;
     }
   }
 

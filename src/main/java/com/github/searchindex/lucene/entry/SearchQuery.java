@@ -14,5 +14,6 @@ import lombok.Setter;
 public class SearchQuery {
 
   private String query;
+  private String username;
 
 }
