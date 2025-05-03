@@ -1,11 +1,13 @@
 package com.github.searchindex.lucene;
 
+import com.github.searchindex.exception.IndexingException;
 import com.github.searchindex.lucene.entry.SearchQuery;
 
 import java.util.List;
 
 /**
  * Indexers are heart of this application!! They manage the indexing of data, from which you can query later.
+ *
  * @see <a href="https://notes.stephenholiday.com/Earlybird.pdf">Earlybird: Real-Time Search at Twitter</a>
  * @see <a href="https://web.archive.org/web/20130904073403/http://www.ibm.com/developerworks/library/wa-lucene/">Delve inside the Lucene indexing mechanism</a>
  * @see <a href="https://lucene.sourceforge.net/talks/pisa/">Doug Cutting</a>
@@ -17,7 +19,9 @@ public interface Indexer<T> {
 
   IndexType getIndexType();
 
-  void index(IndexContext context);
+  boolean needsIndexing(IndexContext context);
+
+  void index(IndexContext context) throws IndexingException;
 
   List<T> search(IndexContext context, SearchQuery searchQuery);
 

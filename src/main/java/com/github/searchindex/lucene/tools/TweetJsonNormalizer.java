@@ -3,6 +3,7 @@ package com.github.searchindex.lucene.tools;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.searchindex.exception.IndexingException;
 import com.github.searchindex.lucene.entry.Tweet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,30 +49,36 @@ public class TweetJsonNormalizer extends AbstractTweetNormalizer {
   }
 
   @Override
-  public void normalizeCsv() {
-    deleteExistingJsonDataset();
-    if (parallelExecution) {
-      CompletableFuture<Integer> f1 = CompletableFuture.supplyAsync(() ->
-        normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV1), executorService);
-      CompletableFuture<Integer> f2 = CompletableFuture.supplyAsync(() ->
-        normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV2), executorService);
-      CompletableFuture<Integer> f3 = CompletableFuture.supplyAsync(() ->
-        normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV3), executorService);
-      CompletableFuture.allOf(f1, f2, f3).join();
-      try {
-        int total = f1.get() + f2.get() + f3.get();
-        logger.info("Successfully saved {} tweets into {} in parallel execution", total, datasetDirectory);
-      } catch (Exception e) {
-        logger.error("Error waiting for normalization completion", e);
+  public void normalizeCsv() throws IndexingException {
+    try {
+      deleteExistingJsonDataset();
+      if (parallelExecution) {
+        CompletableFuture<Integer> f1 = CompletableFuture.supplyAsync(() ->
+          normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV1), executorService);
+        CompletableFuture<Integer> f2 = CompletableFuture.supplyAsync(() ->
+          normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV2), executorService);
+        CompletableFuture<Integer> f3 = CompletableFuture.supplyAsync(() ->
+          normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV3), executorService);
+        CompletableFuture.allOf(f1, f2, f3).join();
+        try {
+          int total = f1.get() + f2.get() + f3.get();
+          logger.info("Successfully saved {} tweets into {} in parallel execution", total, datasetDirectory);
+        } catch (Exception e) {
+          logger.error("Error waiting for normalization completion", e);
+        }
+      } else {
+        int total = 0;
+        total += normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV1);
+        total += normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV2);
+        total += normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV3);
+        logger.info("Successfully saved {} tweets into {} in linear execution", total, datasetDirectory);
       }
-    } else {
-      int total = 0;
-      total += normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV1);
-      total += normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV2);
-      total += normalizeTwitterDataset(this::saveTweetsToJson, twitterDatasetV3);
-      logger.info("Successfully saved {} tweets into {} in linear execution", total, datasetDirectory);
+      logger.info("Normalized tweets successfully!");
+    } catch (Exception e) {
+      final String msg = "Error Normalizing Json";
+      logger.error(msg, e);
+      throw new IndexingException(msg, e);
     }
-    logger.info("Normalized tweets successfully!");
   }
 
   /**
@@ -95,24 +102,15 @@ public class TweetJsonNormalizer extends AbstractTweetNormalizer {
     }
   }
 
-  private void deleteExistingJsonDataset() {
+  private void deleteExistingJsonDataset() throws IOException {
     Path outputPath = Paths.get(datasetDirectory, "tweets", "json");
-    try {
-      if (Files.exists(outputPath) && Files.isDirectory(outputPath)) {
-        try (Stream<Path> path = Files.walk(outputPath)) {
-          path.sorted(Comparator.reverseOrder())
-            .forEach(p -> {
-              try {
-                Files.delete(p);
-              } catch (IOException ioe) {
-                logger.error("Failed to delete file: {}", p, ioe);
-              }
-            });
-          logger.info("Successfully deleted json dataset directory: {}", outputPath);
+    if (Files.exists(outputPath) && Files.isDirectory(outputPath)) {
+      try (Stream<Path> path = Files.walk(outputPath)) {
+        for (Path p : path.sorted(Comparator.reverseOrder()).toList()) {
+          Files.delete(p);
         }
+        logger.info("Successfully deleted json dataset directory: {}", outputPath);
       }
-    } catch (IOException ioe) {
-      logger.error("Error while deleting the json dataset directory", ioe);
     }
   }
 

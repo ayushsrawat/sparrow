@@ -1,5 +1,6 @@
 package com.github.searchindex.lucene.plugins;
 
+import com.github.searchindex.exception.IndexingException;
 import com.github.searchindex.lucene.IndexContext;
 import com.github.searchindex.lucene.IndexType;
 import com.github.searchindex.lucene.Indexer;
@@ -76,6 +77,16 @@ public class TweetsIndexer implements Indexer<Tweet> {
     return IndexType.TWEETS;
   }
 
+  @Override
+  public boolean needsIndexing(IndexContext context) {
+    try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
+      return reader.maxDoc() <= 0;
+    } catch (IOException ioe) {
+      logger.warn(ioe.getMessage());
+    }
+    return true;
+  }
+
   @Getter
   private enum IndexField {
     TWEET_ID("tweet-id"),
@@ -96,7 +107,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
   }
 
   @Override
-  public void index(IndexContext context) {
+  public void index(IndexContext context) throws IndexingException {
     try {
       if (tweetNormalizer.needsNormalization()) {
         tweetNormalizer.normalizeCsv();
@@ -107,6 +118,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
       logger.info("Successfully Indexed {} tweets", sum);
     } catch (IOException ioe) {
       logger.error("Error indexing Tweets  : {}", ioe.getMessage());
+      throw new IndexingException("Error indexing Tweets " + ioe.getMessage(), ioe.getCause());
     }
   }
 
@@ -177,6 +189,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
   }
 
   private Tweet extractTweetFromDocument(Document document) {
+    // todo: should not be getting tweets from indexers but retrieve only the pointer from there
     return Tweet.builder()
       .tweetId(parseUtil.parseLong(document.get(IndexField.TWEET_ID.getName())))
       .username(document.get(IndexField.USERNAME.getName()))

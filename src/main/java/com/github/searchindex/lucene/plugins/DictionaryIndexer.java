@@ -1,5 +1,6 @@
 package com.github.searchindex.lucene.plugins;
 
+import com.github.searchindex.exception.IndexingException;
 import com.github.searchindex.lucene.IndexContext;
 import com.github.searchindex.lucene.IndexType;
 import com.github.searchindex.lucene.Indexer;
@@ -49,6 +50,16 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
     return IndexType.DICTIONARY;
   }
 
+  @Override
+  public boolean needsIndexing(IndexContext context) {
+    try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
+      return reader.maxDoc() <= 0;
+    } catch (IOException ioe) {
+      logger.warn(ioe.getMessage());
+    }
+    return true;
+  }
+
   @Getter
   private enum IndexField {
     WORD("word"),
@@ -63,7 +74,7 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
   }
 
   @Override
-  public void index(IndexContext context) {
+  public void index(IndexContext context) throws IndexingException {
     try {
       Path dataPath = Paths.get(datasetDirectory + wordDictionaryTxt);
       if (!Files.exists(dataPath)) {
@@ -84,19 +95,20 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
             logger.error("Skipping malformed line : {}", line);
             continue;
           }
-          // logger.info("Indexing dictionary row : {}", (Object) row);
+          logger.debug("Indexing dictionary row : {}", (Object) row);
           Document document = new Document();
           document.add(new TextField(IndexField.WORD.getName(), row[0], Field.Store.YES));
           document.add(new StringField(IndexField.PARTS_OF_SPEECH.getName(), row[1], Field.Store.YES));
           document.add(new TextField(IndexField.MEANING.getName(), row[2], Field.Store.YES));
           document.add(new StringField(IndexField.SOURCE.getName(), row[3], Field.Store.YES));
-          writer.addDocument(document); //updateDocument if already exists?
+          writer.addDocument(document); // updateDocument if already exists?
         }
         writer.commit();
       }
       logger.info("Successfully Indexed {} words", count);
     } catch (IOException ioe) {
       logger.error(ioe.getMessage());
+      throw new IndexingException("Error indexing Dictionary " + ioe.getMessage(), ioe.getCause());
     }
   }
 

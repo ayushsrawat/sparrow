@@ -1,5 +1,6 @@
 package com.github.searchindex.lucene.tools;
 
+import com.github.searchindex.exception.IndexingException;
 import com.github.searchindex.lucene.entry.Tweet;
 import com.github.searchindex.repository.TweetRepository;
 import org.slf4j.Logger;
@@ -31,13 +32,19 @@ public class TweetDBNormalizer extends AbstractTweetNormalizer {
   }
 
   @Override
-  public void normalizeCsv() {
-    tweetRepository.deleteAllInBulk();
-    int total = 0;
-    total += normalizeTwitterDataset(tweetBatchSaver::saveAllInBatch, twitterDatasetV1);
-    total += normalizeTwitterDataset(tweetBatchSaver::saveAllInBatch, twitterDatasetV2);
-    total += normalizeTwitterDataset(tweetBatchSaver::saveAllInBatch, twitterDatasetV3);
-    logger.info("Successfully inserted {} tweets into the database", total);
+  public void normalizeCsv() throws IndexingException {
+    try {
+      tweetRepository.deleteAllInBulk();
+      int total = 0;
+      total += normalizeTwitterDataset(tweetBatchSaver::saveAllInBatch, twitterDatasetV1);
+      total += normalizeTwitterDataset(tweetBatchSaver::saveAllInBatch, twitterDatasetV2);
+      total += normalizeTwitterDataset(tweetBatchSaver::saveAllInBatch, twitterDatasetV3);
+      logger.info("Successfully inserted {} tweets into the database", total);
+    } catch (Exception e) {
+      final String msg = "Error normalizing DB";
+      logger.error(msg, e);
+      throw new IndexingException(msg, e);
+    }
   }
 
   @Override
