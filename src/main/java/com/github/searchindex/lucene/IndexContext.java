@@ -18,7 +18,7 @@ public class IndexContext {
 
   @Override
   public String toString() {
-    return "Index Directory : " + directory + "\n IndexWriter :" + writer + "\n Analyzer : " + analyzer;
+    return "Index Directory : " + directory + " IndexWriter :" + writer + " Analyzer : " + analyzer;
   }
 
 }

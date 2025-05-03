@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Configuration
-public class LuceneConfig {
+public class ExecutorConfig {
 
   @Bean
   public ExecutorService executorService() {
