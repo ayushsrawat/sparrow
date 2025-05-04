@@ -9,9 +9,9 @@
         <relativePath/>
     </parent>
     <groupId>com.github</groupId>
-    <artifactId>searchindex</artifactId>
+    <artifactId>sparrow</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>search-index</name>
+    <name>sparrow</name>
     <description>Apache Lucene based Search Index Service</description>
     <url/>
     <licenses>
