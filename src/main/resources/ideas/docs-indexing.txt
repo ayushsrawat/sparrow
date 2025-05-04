@@ -1,6 +1,0 @@
-[indexing,rate-limiter,concurrency,scheduling,pdfs]
-
-DB structure for spiders:
-[Blogs] -> [id, url, domain, title, status, priority, last_crawled_at, retries]
-[crawled] -> [id, parent_id, url, title, status, last_crawled_at, content_hash]
-

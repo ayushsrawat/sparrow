@@ -45,7 +45,7 @@ public class ArticleServiceImpl implements ArticleService {
   @Override
   public List<String> getIndexedTokens() {
     try (IndexContext context = indexContextFactory.createIndexContext(IndexType.ARTICLES, IndexMode.SEARCHING)) {
-      return articlesIndexer.getIndexedTokens(context);
+      return articlesIndexer.getIndexedTokens(context, ArticlesIndexer.IndexField.CONTENT);
     } catch (IOException ioe) {
       throw new RuntimeException(ioe.getMessage());
     }

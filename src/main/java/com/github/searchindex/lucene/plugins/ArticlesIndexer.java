@@ -51,7 +51,7 @@ public class ArticlesIndexer implements Indexer<CrawledPage> {
   }
 
   @Getter
-  private enum IndexField {
+  public enum IndexField {
     ID("id"),
     URL("url"),
     TITLE("title"),
@@ -105,11 +105,11 @@ public class ArticlesIndexer implements Indexer<CrawledPage> {
     }
   }
 
-  public List<String> getIndexedTokens(IndexContext context) {
+  public List<String> getIndexedTokens(IndexContext context, IndexField indexField) {
     List<String> tokens = new ArrayList<>();
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       for (LeafReaderContext leafContext : reader.leaves()) {
-        Terms terms = leafContext.reader().terms(IndexField.CONTENT.getName());
+        Terms terms = leafContext.reader().terms(indexField.getName());
         if (terms == null) continue;
         TermsEnum iterator = terms.iterator();
         BytesRef term;
