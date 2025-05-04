@@ -1,4 +1,4 @@
-package com.github.searchindex.lucene.tools;
+package com.github.searchindex.util;
 
 import org.springframework.stereotype.Component;
 

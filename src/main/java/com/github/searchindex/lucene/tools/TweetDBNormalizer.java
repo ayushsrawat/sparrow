@@ -3,6 +3,8 @@ package com.github.searchindex.lucene.tools;
 import com.github.searchindex.exception.IndexingException;
 import com.github.searchindex.lucene.entry.Tweet;
 import com.github.searchindex.repository.TweetRepository;
+import com.github.searchindex.util.ParseUtil;
+import com.github.searchindex.util.TweetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

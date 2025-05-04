@@ -2,6 +2,7 @@ package com.github.searchindex.lucene.tools;
 
 import com.github.searchindex.lucene.TweetNormalizer;
 import com.github.searchindex.lucene.entry.Tweet;
+import com.github.searchindex.util.ParseUtil;
 import com.univocity.parsers.common.ParsingContext;
 import com.univocity.parsers.common.processor.AbstractRowProcessor;
 import com.univocity.parsers.csv.CsvParser;

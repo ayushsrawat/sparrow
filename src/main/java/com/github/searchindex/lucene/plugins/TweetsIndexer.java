@@ -7,8 +7,8 @@ import com.github.searchindex.lucene.Indexer;
 import com.github.searchindex.lucene.TweetNormalizer;
 import com.github.searchindex.lucene.entry.SearchQuery;
 import com.github.searchindex.lucene.entry.Tweet;
-import com.github.searchindex.lucene.tools.DateUtil;
-import com.github.searchindex.lucene.tools.ParseUtil;
+import com.github.searchindex.util.DateUtil;
+import com.github.searchindex.util.ParseUtil;
 import lombok.Getter;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -126,34 +126,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
     try {
       int batch = 0;
       for (Tweet tweet : tweets) {
-        logger.debug("Indexing tweet >> {} : {} ", tweet.getUsername(), tweet.getTweet());
-        Document document = new Document();
-        document.add(new LongField(IndexField.TWEET_ID.getName(), tweet.getTweetId(), Field.Store.YES));
-        document.add(new StringField(IndexField.USERNAME.getName(), tweet.getUsername(), Field.Store.YES));
-        document.add(new TextField(IndexField.TWEET.getName(), tweet.getTweet(), Field.Store.YES));
-        if (tweet.getTweetDate() != null) {
-          long dateLong = dateUtil.convertToLong(tweet.getTweetDate());
-          DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-          document.add(new LongPoint(IndexField.DATE.getName(), dateLong));
-          document.add(new StoredField(IndexField.DATE.getName(), dateLong));
-          document.add(new StringField(IndexField.FORMATTED_DATE.getName(), tweet.getTweetDate().format(formatter), Field.Store.YES));
-        }
-        if (tweet.getFullName() != null) {
-          document.add(new TextField(IndexField.FULL_NAME.getName(), tweet.getFullName(), Field.Store.YES));
-        }
-        if (tweet.getUrl() != null) {
-          document.add(new TextField(IndexField.URL.getName(), tweet.getUrl(), Field.Store.YES));
-        }
-        if (tweet.getViews() != null) {
-          document.add(new IntField(IndexField.VIEWS.getName(), tweet.getViews(), Field.Store.YES));
-        }
-        if (tweet.getLikes() != null) {
-          document.add(new IntField(IndexField.LIKES.getName(), tweet.getLikes(), Field.Store.YES));
-        }
-        if (tweet.getRetweets() != null) {
-          document.add(new IntField(IndexField.RETWEETS.getName(), tweet.getRetweets(), Field.Store.YES));
-        }
-        context.getWriter().addDocument(document);
+        indexDocument(context, tweet);
         if (++batch >= maxBatchCommitSize) {
           context.getWriter().commit();
           batch = 0;
@@ -165,6 +138,38 @@ public class TweetsIndexer implements Indexer<Tweet> {
       logger.error("Failed to index {} tweets", tweets.size(), ioe);
       return -1;
     }
+  }
+
+  @Override
+  public void indexDocument(IndexContext context, Tweet tweet) throws IOException {
+    logger.debug("Indexing tweet >> {} : {} ", tweet.getUsername(), tweet.getTweet());
+    Document document = new Document();
+    document.add(new LongField(IndexField.TWEET_ID.getName(), tweet.getTweetId(), Field.Store.YES));
+    document.add(new StringField(IndexField.USERNAME.getName(), tweet.getUsername(), Field.Store.YES));
+    document.add(new TextField(IndexField.TWEET.getName(), tweet.getTweet(), Field.Store.YES));
+    if (tweet.getTweetDate() != null) {
+      long dateLong = dateUtil.convertToLong(tweet.getTweetDate());
+      DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+      document.add(new LongPoint(IndexField.DATE.getName(), dateLong));
+      document.add(new StoredField(IndexField.DATE.getName(), dateLong));
+      document.add(new StringField(IndexField.FORMATTED_DATE.getName(), tweet.getTweetDate().format(formatter), Field.Store.YES));
+    }
+    if (tweet.getFullName() != null) {
+      document.add(new TextField(IndexField.FULL_NAME.getName(), tweet.getFullName(), Field.Store.YES));
+    }
+    if (tweet.getUrl() != null) {
+      document.add(new TextField(IndexField.URL.getName(), tweet.getUrl(), Field.Store.YES));
+    }
+    if (tweet.getViews() != null) {
+      document.add(new IntField(IndexField.VIEWS.getName(), tweet.getViews(), Field.Store.YES));
+    }
+    if (tweet.getLikes() != null) {
+      document.add(new IntField(IndexField.LIKES.getName(), tweet.getLikes(), Field.Store.YES));
+    }
+    if (tweet.getRetweets() != null) {
+      document.add(new IntField(IndexField.RETWEETS.getName(), tweet.getRetweets(), Field.Store.YES));
+    }
+    context.getWriter().addDocument(document);
   }
 
   @Override
@@ -181,7 +186,9 @@ public class TweetsIndexer implements Indexer<Tweet> {
       }
       Query query = bqb.build();
       logger.info("Searching for the query : {}, using searcher : {}", query, searcher);
-      return searcher.search(query, new TweetCollectorManager());
+      List<Tweet> searched = searcher.search(query, new TweetCollectorManager());
+      logger.info("Searched [{}] tweets for the query [{}]", searched.size(), query);
+      return searched;
     } catch (IOException | ParseException e) {
       logger.error("Search failed : {}", e.getMessage());
       return List.of();
@@ -273,7 +280,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
     public void collect(int docId) throws IOException {
       Document doc = context.reader().storedFields().document(docId);
       results.add(extractTweetFromDocument(doc));
-      logger.info("Score for docId {}: {}", docId, scorer.score());
+      logger.debug("Score for docId {}: {}", docId, scorer.score());
     }
 
     @Override

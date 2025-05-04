@@ -1,8 +1,15 @@
 package com.github.searchindex.spider;
 
 import com.github.searchindex.entity.Article;
+import com.github.searchindex.entity.CrawledPage;
+import com.github.searchindex.lucene.IndexContext;
+import com.github.searchindex.lucene.IndexContextFactory;
+import com.github.searchindex.lucene.IndexMode;
+import com.github.searchindex.lucene.IndexType;
+import com.github.searchindex.lucene.plugins.ArticlesIndexer;
 import com.github.searchindex.repository.ArticleRepository;
 import com.github.searchindex.repository.CrawledPageRepository;
+import com.github.searchindex.util.HashUtil;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -17,8 +24,10 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -27,29 +36,35 @@ public class SpiderMan {
 
   private static final Logger logger = LoggerFactory.getLogger(SpiderMan.class);
 
+  private final ArticlesIndexer articlesIndexer;
   private final ArticleRepository articleRepository;
   private final CrawledPageRepository crawledPageRepository;
+  private final IndexContextFactory contextFactory;
+  private final HashUtil hashUtil;
 
   @Value("${spider.retries.max}")
   private Integer maxRetries;
   @Value("${spider.depth.max}")
   private Integer maxDepth;
 
-  public void start(JobExecutionContext context) {
-    logger.info("SpiderMan Scheduling at: {}", context.getScheduledFireTime());
+  public void activatePowers(JobExecutionContext jobExecutionContext) throws IOException {
+    logger.info("SpiderMan Scheduling at: {}", jobExecutionContext.getScheduledFireTime());
+    IndexContext indexContext =  contextFactory.createIndexContext(IndexType.ARTICLES, IndexMode.INDEXING);
     List<Article> articles = articleRepository.getSchedulingArticles(SpiderStatus.PENDING, SpiderStatus.FAILED, maxRetries);
     for (Article article : articles) {
-      crawlArticle(article);
+      crawlArticle(indexContext, article);
     }
+    indexContext.getWriter().close();
+    indexContext.getDirectory().close();
   }
 
-  private void crawlArticle(Article article) {
+  private void crawlArticle(IndexContext context, Article article) {
     logger.info("crawling Url: {}", article.getUrl());
     article.setStatus(SpiderStatus.IN_PROGRESS);
     articleRepository.save(article);
     try {
-      crawlUrl(article, article.getUrl(), 0, new HashSet<>());
-      article.setStatus(SpiderStatus.PENDING);
+      crawlUrlRecursively(context, article, article.getUrl(), 0, new HashSet<>());
+      article.setStatus(SpiderStatus.CRAWLED);
     } catch (IOException ioe) {
       logger.error("Error crawling the article: {} ", article.getUrl(), ioe);
       article.setStatus(SpiderStatus.FAILED);
@@ -57,23 +72,38 @@ public class SpiderMan {
     articleRepository.save(article);
   }
 
-  private void crawlUrl(Article parent, String url, Integer depth, Set<String> visitedUrl) throws IOException {
+  private void crawlUrlRecursively(IndexContext context, Article parent, String url, Integer depth, Set<String> visitedUrl) throws IOException {
     if (depth > maxDepth || visitedUrl.contains(url)) return;
+    Optional<CrawledPage> isAlreadyCrawled = crawledPageRepository.getByUrl(url);
+    if (isAlreadyCrawled.isPresent()) return;
 
     Document dom = Jsoup.connect(url).get();
     visitedUrl.add(url);
-    logger.info("Title: {}", dom.title());
+    String title = dom.title();
+    logger.info("Crawled page title: {}", title);
 
-    // todo: index this content with stop common words
-    //       save this visited url to CrawledPage
     String content = dom.body().text();
+    String contentHash = hashUtil.hashSHA256(content);
+    CrawledPage crawledPage = CrawledPage
+      .builder()
+      .url(url)
+      .parentArticle(parent)
+      .title(title)
+      .contentHash(contentHash)
+      .content(content)
+      .status(SpiderStatus.CRAWLED)
+      .lastCrawledAt(LocalDateTime.now())
+      .build();
+    crawledPageRepository.save(crawledPage);
+    // todo: in a separate thread >> lifecycle of executor service?
+    articlesIndexer.indexDocument(context, crawledPage);
 
     Elements links = dom.select("a[href]");
     for (Element link : links) {
       String href = link.absUrl("href");
-      if (!href.isEmpty() && !visitedUrl.contains(href) && isSameDomain(url, href)) {
+      if (!href.isEmpty() && isSameDomain(url, href)) {
         try {
-          crawlUrl(parent, href, depth + 1, visitedUrl);
+          crawlUrlRecursively(context, parent, href, depth + 1, visitedUrl);
         } catch (IOException ioe) {
           logger.warn("Failed to crawl link: {}", href, ioe);
         }

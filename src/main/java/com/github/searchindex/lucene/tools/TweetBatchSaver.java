@@ -1,6 +1,7 @@
 package com.github.searchindex.lucene.tools;
 
 import com.github.searchindex.lucene.entry.Tweet;
+import com.github.searchindex.util.TweetUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

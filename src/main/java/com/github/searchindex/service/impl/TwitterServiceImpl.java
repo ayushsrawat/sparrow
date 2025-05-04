@@ -23,8 +23,7 @@ public class TwitterServiceImpl implements TwitterService {
 
   @Override
   public List<Tweet> search(String query, String username) {
-    try {
-      IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING);
+    try (IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING)) {
       return tweetsIndexer.search(context, SearchQuery.builder().query(query).username(username).build());
     } catch (IOException ioe) {
       throw new RuntimeException(ioe.getMessage());
@@ -33,8 +32,7 @@ public class TwitterServiceImpl implements TwitterService {
 
   @Override
   public List<Tweet> searchByUsername(String username) {
-    try {
-      IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING);
+    try (IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING)) {
       return tweetsIndexer.searchByUsername(context, username);
     } catch (IOException ioe) {
       throw new RuntimeException(ioe.getMessage());
@@ -43,8 +41,7 @@ public class TwitterServiceImpl implements TwitterService {
 
   @Override
   public Integer getAllIndexedTweets() {
-    try {
-      IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING);
+    try (IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING)) {
       return tweetsIndexer.getIndexedTweets(context).size();
     } catch (IOException ioe) {
       throw new RuntimeException(ioe.getMessage());

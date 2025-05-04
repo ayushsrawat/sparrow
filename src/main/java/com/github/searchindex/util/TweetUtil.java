@@ -1,4 +1,4 @@
-package com.github.searchindex.lucene.tools;
+package com.github.searchindex.util;
 
 import com.github.searchindex.entity.TweetData;
 import com.github.searchindex.lucene.entry.Tweet;

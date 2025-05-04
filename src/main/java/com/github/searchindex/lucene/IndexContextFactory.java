@@ -1,7 +1,7 @@
 package com.github.searchindex.lucene;
 
+import lombok.RequiredArgsConstructor;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
@@ -17,9 +17,12 @@ import java.io.IOException;
 
 @Component
 @PropertySource("classpath:index.properties")
+@RequiredArgsConstructor
 public class IndexContextFactory {
 
   private static final Logger logger = LoggerFactory.getLogger(IndexContextFactory.class);
+
+  private final AnalyzerProvider analyzerProvider;
 
   @Value("${index.path}")
   private String indexPath;
@@ -38,7 +41,7 @@ public class IndexContextFactory {
     Directory luceneDirectory = FSDirectory.open(indexDir.toPath());
     logger.info("Lucene directory : {}", luceneDirectory);
 
-    Analyzer analyzer = new StandardAnalyzer();
+    Analyzer analyzer = analyzerProvider.getAnalyzer(indexType);
     if (IndexMode.INDEXING.equals(indexMode)) {
       IndexWriterConfig config = new IndexWriterConfig(analyzer);
       config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);

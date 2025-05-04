@@ -23,8 +23,7 @@ public class DictionaryServiceImpl implements DictionaryService {
 
   @Override
   public List<DictionaryEntry> search(String query) {
-    try {
-      IndexContext context = indexContextFactory.createIndexContext(IndexType.DICTIONARY, IndexMode.SEARCHING);
+    try (IndexContext context = indexContextFactory.createIndexContext(IndexType.DICTIONARY, IndexMode.SEARCHING)) {
       return dictionaryIndexer.search(context, SearchQuery.builder().query(query).build());
     } catch (IOException e) {
       throw new RuntimeException(e.getMessage());

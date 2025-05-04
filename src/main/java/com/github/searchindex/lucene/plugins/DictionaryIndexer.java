@@ -96,12 +96,13 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
             continue;
           }
           logger.debug("Indexing dictionary row : {}", (Object) row);
-          Document document = new Document();
-          document.add(new TextField(IndexField.WORD.getName(), row[0], Field.Store.YES));
-          document.add(new StringField(IndexField.PARTS_OF_SPEECH.getName(), row[1], Field.Store.YES));
-          document.add(new TextField(IndexField.MEANING.getName(), row[2], Field.Store.YES));
-          document.add(new StringField(IndexField.SOURCE.getName(), row[3], Field.Store.YES));
-          writer.addDocument(document); // updateDocument if already exists?
+          DictionaryEntry dictionaryEntry = DictionaryEntry.builder()
+            .word(row[0])
+            .partsOfSpeech(row[1])
+            .meaning(row[2])
+            .source(row[3])
+            .build();
+          indexDocument(context, dictionaryEntry);
         }
         writer.commit();
       }
@@ -110,6 +111,16 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
       logger.error(ioe.getMessage());
       throw new IndexingException("Error indexing Dictionary " + ioe.getMessage(), ioe.getCause());
     }
+  }
+
+  @Override
+  public void indexDocument(IndexContext context, DictionaryEntry dictionaryEntry) throws IOException {
+    Document document = new Document();
+    document.add(new TextField(IndexField.WORD.getName(), dictionaryEntry.word(), Field.Store.YES));
+    document.add(new StringField(IndexField.PARTS_OF_SPEECH.getName(), dictionaryEntry.partsOfSpeech(), Field.Store.YES));
+    document.add(new TextField(IndexField.MEANING.getName(), dictionaryEntry.meaning(), Field.Store.YES));
+    document.add(new StringField(IndexField.SOURCE.getName(), dictionaryEntry.source(), Field.Store.YES));
+    context.getWriter().addDocument(document); // updateDocument if already exists?
   }
 
   @Override
@@ -124,7 +135,7 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
       TopDocs topDocs = searcher.search(query, 10);
       List<DictionaryEntry> result = new ArrayList<>();
       for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-        logger.info("Explanation : {}", searcher.explain(query, scoreDoc.doc));
+        logger.debug("Explanation : {}", searcher.explain(query, scoreDoc.doc));
         Document document = searcher.storedFields().document(scoreDoc.doc);
         DictionaryEntry entry = DictionaryEntry.builder()
           .word(document.get(IndexField.WORD.getName()))

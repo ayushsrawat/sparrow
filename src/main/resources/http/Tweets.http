@@ -23,3 +23,10 @@ GET localhost:8080/api/search/twitter?q=ipl&from=azulfi
 
 ###
 GET localhost:8080/api/search/twitter?q=joke&from=princesschrysti
+
+###
+GET localhost:8080/api/search/twitter?q=try&from=icyblue93
+###
+GET localhost:8080/api/search/twitter?q=tried
+###
+GET localhost:8080/api/search/twitter?q=trying

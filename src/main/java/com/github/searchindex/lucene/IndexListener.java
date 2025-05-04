@@ -53,8 +53,7 @@ public class IndexListener {
   private void runIndexer(Indexer<?> indexer) throws IndexingException {
     IndexType indexType = indexer.getIndexType();
     logger.info("Initializing Indexer : {}", indexType.getName());
-    try {
-      IndexContext context = contextFactory.createIndexContext(indexType, IndexMode.INDEXING);
+    try (IndexContext context = contextFactory.createIndexContext(indexType, IndexMode.INDEXING)) {
       logger.info("Created index context : {}", context);
       if (!indexer.needsIndexing(context)) {
         logger.info("{} already indexed. Skipping indexing...", indexType);

@@ -3,6 +3,7 @@ package com.github.searchindex.lucene;
 import com.github.searchindex.exception.IndexingException;
 import com.github.searchindex.lucene.entry.SearchQuery;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -19,10 +20,14 @@ public interface Indexer<T> {
 
   IndexType getIndexType();
 
-  boolean needsIndexing(IndexContext context);
-
   void index(IndexContext context) throws IndexingException;
 
+  void indexDocument(IndexContext context, T document) throws IOException;
+
   List<T> search(IndexContext context, SearchQuery searchQuery);
+
+  default boolean needsIndexing(IndexContext context) {
+    return false;
+  }
 
 }
