@@ -6,6 +6,7 @@ import com.github.searchindex.lucene.IndexContext;
 import com.github.searchindex.lucene.IndexType;
 import com.github.searchindex.lucene.Indexer;
 import com.github.searchindex.lucene.entry.SearchQuery;
+import com.github.searchindex.repository.CrawledPageRepository;
 import com.github.searchindex.util.DateUtil;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -15,11 +16,24 @@ import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.util.BytesRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -28,6 +42,7 @@ public class ArticlesIndexer implements Indexer<CrawledPage> {
 
   private static final Logger logger = LoggerFactory.getLogger(ArticlesIndexer.class);
 
+  private final CrawledPageRepository crawledPageRepository;
   private final DateUtil dateUtil;
 
   @Override
@@ -71,7 +86,41 @@ public class ArticlesIndexer implements Indexer<CrawledPage> {
 
   @Override
   public List<CrawledPage> search(IndexContext context, SearchQuery searchQuery) {
-    return List.of();
+    try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      QueryParser queryParser = new QueryParser(IndexField.CONTENT.getName(), context.getAnalyzer());
+      Query query = queryParser.parse(searchQuery.getQuery());
+      TopDocs topDocs = searcher.search(query, Integer.MAX_VALUE);
+      List<String> searchedUrls = new ArrayList<>();
+      for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+        Document doc = reader.storedFields().document(scoreDoc.doc);
+        searchedUrls.add(doc.get(IndexField.URL.getName()));
+      }
+      List<CrawledPage> searchedPages = crawledPageRepository.findAllByUrls(searchedUrls);
+      logger.info("Searched [{}] pages for query [{}]", searchedPages.size(), query);
+      return searchedPages;
+    } catch (IOException | ParseException e) {
+      logger.error("Search failed : {}", e.getMessage());
+      return List.of();
+    }
+  }
+
+  public List<String> getIndexedTokens(IndexContext context) {
+    List<String> tokens = new ArrayList<>();
+    try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
+      for (LeafReaderContext leafContext : reader.leaves()) {
+        Terms terms = leafContext.reader().terms(IndexField.CONTENT.getName());
+        if (terms == null) continue;
+        TermsEnum iterator = terms.iterator();
+        BytesRef term;
+        while ((term = iterator.next()) != null) {
+          tokens.add(term.utf8ToString());
+        }
+      }
+    } catch (IOException ioe) {
+      logger.error("Error reading index: {}", ioe.getMessage(), ioe);
+    }
+    return tokens;
   }
 
 }

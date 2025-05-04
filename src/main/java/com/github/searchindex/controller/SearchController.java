@@ -1,7 +1,9 @@
 package com.github.searchindex.controller;
 
+import com.github.searchindex.dto.ArticleSearchResponse;
 import com.github.searchindex.lucene.entry.DictionaryEntry;
 import com.github.searchindex.lucene.entry.Tweet;
+import com.github.searchindex.service.ArticleService;
 import com.github.searchindex.service.DictionaryService;
 import com.github.searchindex.service.TwitterService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SearchController {
 
+  private final ArticleService articleService;
   private final DictionaryService dictionaryService;
   private final TwitterService twitterService;
 
@@ -42,6 +45,16 @@ public class SearchController {
   @GetMapping("/twitter/count")
   public ResponseEntity<Integer> indexedTweetsCount() {
     return ResponseEntity.ok(twitterService.getAllIndexedTweets());
+  }
+
+  @GetMapping("/article")
+  public ResponseEntity<List<ArticleSearchResponse>> articleSearch(@RequestParam("q") String query) {
+    return ResponseEntity.ok(articleService.search(query));
+  }
+
+  @GetMapping("/article/tokens")
+  public ResponseEntity<List<String>> articleIndexedTokens() {
+    return ResponseEntity.ok(articleService.getIndexedTokens());
   }
 
 }

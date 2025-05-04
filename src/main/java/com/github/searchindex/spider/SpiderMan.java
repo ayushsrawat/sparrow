@@ -47,15 +47,18 @@ public class SpiderMan {
   @Value("${spider.depth.max}")
   private Integer maxDepth;
 
-  public void activatePowers(JobExecutionContext jobExecutionContext) throws IOException {
-    logger.info("SpiderMan Scheduling at: {}", jobExecutionContext.getScheduledFireTime());
-    IndexContext indexContext =  contextFactory.createIndexContext(IndexType.ARTICLES, IndexMode.INDEXING);
+  public void activatePowers(JobExecutionContext jobContext) throws IOException {
+    logger.info("SpiderMan Scheduling at: {}", jobContext.getScheduledFireTime());
     List<Article> articles = articleRepository.getSchedulingArticles(SpiderStatus.PENDING, SpiderStatus.FAILED, maxRetries);
-    for (Article article : articles) {
-      crawlArticle(indexContext, article);
+    if (articles.isEmpty()) {
+      logger.info("No articles to crawl. Scheduling next at {}", jobContext.getNextFireTime());
+      return;
     }
-    indexContext.getWriter().close();
-    indexContext.getDirectory().close();
+    try (IndexContext indexContext = contextFactory.createIndexContext(IndexType.ARTICLES, IndexMode.INDEXING)) {
+      for (Article article : articles) {
+        crawlArticle(indexContext, article);
+      }
+    }
   }
 
   private void crawlArticle(IndexContext context, Article article) {
