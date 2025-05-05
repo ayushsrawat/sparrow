@@ -1,10 +1,8 @@
 package com.github.sparrow.lucene;
 
 import com.github.sparrow.exception.IndexingException;
-import com.github.sparrow.lucene.entry.SearchQuery;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Indexers are heart of this application!! They manage the indexing of data, from which you can query later.
@@ -18,15 +16,13 @@ import java.util.List;
  */
 public interface Indexer<T> {
 
-  IndexType getIndexType();
+  EngineType getEngineType();
 
-  void index(IndexContext context) throws IndexingException;
+  void index(LuceneContext context) throws IndexingException;
 
-  void indexDocument(IndexContext context, T document) throws IOException;
+  void indexDocument(LuceneContext context, T document) throws IOException;
 
-  List<T> search(IndexContext context, SearchQuery searchQuery);
-
-  default boolean needsIndexing(IndexContext context) {
+  default boolean needsIndexing(LuceneContext context) {
     return false;
   }
 

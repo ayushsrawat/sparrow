@@ -13,7 +13,7 @@ import java.io.IOException;
 @Getter
 @Setter
 @Builder
-public class IndexContext implements Closeable {
+public class LuceneContext implements Closeable {
 
   private Directory directory;
   private IndexWriter writer;

@@ -1,12 +1,12 @@
 package com.github.sparrow.service.impl;
 
-import com.github.sparrow.lucene.IndexContext;
-import com.github.sparrow.lucene.IndexContextFactory;
-import com.github.sparrow.lucene.IndexMode;
-import com.github.sparrow.lucene.IndexType;
+import com.github.sparrow.lucene.LuceneContext;
+import com.github.sparrow.lucene.LuceneContextFactory;
+import com.github.sparrow.lucene.LuceneMode;
+import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.entry.SearchQuery;
 import com.github.sparrow.lucene.entry.Tweet;
-import com.github.sparrow.lucene.plugins.TweetsIndexer;
+import com.github.sparrow.lucene.engines.TweetsEngine;
 import com.github.sparrow.service.TwitterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,13 +18,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TwitterServiceImpl implements TwitterService {
 
-  private final IndexContextFactory contextFactory;
-  private final TweetsIndexer tweetsIndexer;
+  private final LuceneContextFactory contextFactory;
+  private final TweetsEngine tweetsEngine;
 
   @Override
   public List<Tweet> search(String query, String username) {
-    try (IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING)) {
-      return tweetsIndexer.search(context, SearchQuery.builder().query(query).username(username).build());
+    try (LuceneContext context = contextFactory.createLuceneContext(EngineType.TWEETS, LuceneMode.SEARCHING)) {
+      return tweetsEngine.search(context, SearchQuery.builder().query(query).username(username).build());
     } catch (IOException ioe) {
       throw new RuntimeException(ioe.getMessage());
     }
@@ -32,8 +32,8 @@ public class TwitterServiceImpl implements TwitterService {
 
   @Override
   public List<Tweet> searchByUsername(String username) {
-    try (IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING)) {
-      return tweetsIndexer.searchByUsername(context, username);
+    try (LuceneContext context = contextFactory.createLuceneContext(EngineType.TWEETS, LuceneMode.SEARCHING)) {
+      return tweetsEngine.searchByUsername(context, username);
     } catch (IOException ioe) {
       throw new RuntimeException(ioe.getMessage());
     }
@@ -41,8 +41,8 @@ public class TwitterServiceImpl implements TwitterService {
 
   @Override
   public Integer getAllIndexedTweets() {
-    try (IndexContext context = contextFactory.createIndexContext(IndexType.TWEETS, IndexMode.SEARCHING)) {
-      return tweetsIndexer.getIndexedTweets(context).size();
+    try (LuceneContext context = contextFactory.createLuceneContext(EngineType.TWEETS, LuceneMode.SEARCHING)) {
+      return tweetsEngine.getIndexedTweets(context).size();
     } catch (IOException ioe) {
       throw new RuntimeException(ioe.getMessage());
     }

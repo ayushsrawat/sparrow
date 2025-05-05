@@ -24,7 +24,7 @@ public class IndexListener {
 
   private final Logger logger = LoggerFactory.getLogger(IndexListener.class);
   private final List<Indexer<?>> indexers;
-  private final IndexContextFactory contextFactory;
+  private final LuceneContextFactory contextFactory;
   private final ExecutorService executorService;
 
   @Value("${indexing.parallel}")
@@ -51,17 +51,17 @@ public class IndexListener {
   }
 
   private void runIndexer(Indexer<?> indexer) throws IndexingException {
-    IndexType indexType = indexer.getIndexType();
-    logger.info("Initializing Indexer : {}", indexType.getName());
-    try (IndexContext context = contextFactory.createIndexContext(indexType, IndexMode.INDEXING)) {
+    EngineType engineType = indexer.getEngineType();
+    logger.info("Initializing Indexer : {}", engineType.getName());
+    try (LuceneContext context = contextFactory.createLuceneContext(engineType, LuceneMode.INDEXING)) {
       logger.info("Created index context : {}", context);
       if (!indexer.needsIndexing(context)) {
-        logger.info("{} already indexed. Skipping indexing...", indexType);
+        logger.info("{} already indexed. Skipping indexing...", engineType);
         return;
       }
       indexer.index(context);
     } catch (Exception ex) {
-      String msg = "Indexing failed for " + indexType.getName();
+      String msg = "Indexing failed for " + engineType.getName();
       logger.error(msg, ex);
       throw new IndexingException(msg);
     }

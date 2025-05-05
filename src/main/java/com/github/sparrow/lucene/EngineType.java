@@ -3,7 +3,7 @@ package com.github.sparrow.lucene;
 import lombok.Getter;
 
 @Getter
-public enum IndexType {
+public enum EngineType {
 
   DICTIONARY("dictionary"),
   TWEETS("tweets"),
@@ -11,7 +11,7 @@ public enum IndexType {
 
   private final String name;
 
-  IndexType(String name) {
+  EngineType(String name) {
     this.name = name;
   }
 

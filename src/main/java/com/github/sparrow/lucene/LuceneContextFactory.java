@@ -18,9 +18,9 @@ import java.io.IOException;
 @Component
 @PropertySource("classpath:index.properties")
 @RequiredArgsConstructor
-public class IndexContextFactory {
+public class LuceneContextFactory {
 
-  private static final Logger logger = LoggerFactory.getLogger(IndexContextFactory.class);
+  private static final Logger logger = LoggerFactory.getLogger(LuceneContextFactory.class);
 
   private final AnalyzerProvider analyzerProvider;
 
@@ -30,10 +30,10 @@ public class IndexContextFactory {
   /**
    * Context to save the lucene indexes in ~/lucene/search-index/{index-name}
    */
-  public IndexContext createIndexContext(IndexType indexType, IndexMode indexMode) throws IOException {
-    logger.info("Creating Lucene context for {} in {} mode", indexType.getName(), indexMode);
+  public LuceneContext createLuceneContext(EngineType engineType, LuceneMode luceneMode) throws IOException {
+    logger.info("Creating Lucene context for {} in {} mode", engineType.getName(), luceneMode);
     final String luceneIndexPath = createLuceneIndexDir();
-    File indexDir = new File(luceneIndexPath + indexType.getName());
+    File indexDir = new File(luceneIndexPath + engineType.getName());
     if (!indexDir.exists() && !indexDir.mkdirs()) {
       logger.error("Error creating index directory {}", luceneIndexPath);
       throw new IOException();
@@ -41,12 +41,12 @@ public class IndexContextFactory {
     Directory luceneDirectory = FSDirectory.open(indexDir.toPath());
     logger.info("Lucene directory : {}", luceneDirectory);
 
-    Analyzer analyzer = analyzerProvider.getAnalyzer(indexType);
-    if (IndexMode.INDEXING.equals(indexMode)) {
+    Analyzer analyzer = analyzerProvider.getAnalyzer(engineType);
+    if (LuceneMode.INDEXING.equals(luceneMode)) {
       IndexWriterConfig config = new IndexWriterConfig(analyzer);
       config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
       IndexWriter writer = new IndexWriter(luceneDirectory, config);
-      return IndexContext.builder()
+      return LuceneContext.builder()
         .directory(luceneDirectory)
         .writer(writer)
         .analyzer(analyzer)
@@ -54,7 +54,7 @@ public class IndexContextFactory {
     }
 
     //do not need IndexWriter while searching the indexes; it throws write.lock
-    return IndexContext.builder()
+    return LuceneContext.builder()
       .directory(luceneDirectory)
       .analyzer(analyzer)
       .build();

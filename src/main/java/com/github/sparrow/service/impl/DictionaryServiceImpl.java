@@ -1,12 +1,12 @@
 package com.github.sparrow.service.impl;
 
-import com.github.sparrow.lucene.IndexContext;
-import com.github.sparrow.lucene.IndexContextFactory;
-import com.github.sparrow.lucene.IndexMode;
-import com.github.sparrow.lucene.IndexType;
+import com.github.sparrow.lucene.LuceneContext;
+import com.github.sparrow.lucene.LuceneContextFactory;
+import com.github.sparrow.lucene.LuceneMode;
+import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.entry.DictionaryEntry;
 import com.github.sparrow.lucene.entry.SearchQuery;
-import com.github.sparrow.lucene.plugins.DictionaryIndexer;
+import com.github.sparrow.lucene.engines.DictionaryEngine;
 import com.github.sparrow.service.DictionaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,13 +18,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DictionaryServiceImpl implements DictionaryService {
 
-  private final IndexContextFactory indexContextFactory;
-  private final DictionaryIndexer dictionaryIndexer;
+  private final LuceneContextFactory luceneContextFactory;
+  private final DictionaryEngine dictionaryEngine;
 
   @Override
   public List<DictionaryEntry> search(String query) {
-    try (IndexContext context = indexContextFactory.createIndexContext(IndexType.DICTIONARY, IndexMode.SEARCHING)) {
-      return dictionaryIndexer.search(context, SearchQuery.builder().query(query).build());
+    try (LuceneContext context = luceneContextFactory.createLuceneContext(EngineType.DICTIONARY, LuceneMode.SEARCHING)) {
+      return dictionaryEngine.search(context, SearchQuery.builder().query(query).build());
     } catch (IOException e) {
       throw new RuntimeException(e.getMessage());
     }

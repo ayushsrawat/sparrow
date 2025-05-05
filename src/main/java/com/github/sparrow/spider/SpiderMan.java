@@ -2,11 +2,11 @@ package com.github.sparrow.spider;
 
 import com.github.sparrow.entity.Article;
 import com.github.sparrow.entity.CrawledPage;
-import com.github.sparrow.lucene.IndexContext;
-import com.github.sparrow.lucene.IndexContextFactory;
-import com.github.sparrow.lucene.IndexMode;
-import com.github.sparrow.lucene.IndexType;
-import com.github.sparrow.lucene.plugins.ArticlesIndexer;
+import com.github.sparrow.lucene.LuceneContext;
+import com.github.sparrow.lucene.LuceneContextFactory;
+import com.github.sparrow.lucene.LuceneMode;
+import com.github.sparrow.lucene.EngineType;
+import com.github.sparrow.lucene.engines.ArticlesEngine;
 import com.github.sparrow.repository.ArticleRepository;
 import com.github.sparrow.repository.CrawledPageRepository;
 import com.github.sparrow.util.HashUtil;
@@ -36,10 +36,10 @@ public class SpiderMan {
 
   private static final Logger logger = LoggerFactory.getLogger(SpiderMan.class);
 
-  private final ArticlesIndexer articlesIndexer;
+  private final ArticlesEngine articlesEngine;
   private final ArticleRepository articleRepository;
   private final CrawledPageRepository crawledPageRepository;
-  private final IndexContextFactory contextFactory;
+  private final LuceneContextFactory contextFactory;
   private final HashUtil hashUtil;
 
   @Value("${spider.retries.max}")
@@ -54,14 +54,14 @@ public class SpiderMan {
       logger.info("No articles to crawl. Scheduling next at {}", jobContext.getNextFireTime());
       return;
     }
-    try (IndexContext indexContext = contextFactory.createIndexContext(IndexType.ARTICLES, IndexMode.INDEXING)) {
+    try (LuceneContext luceneContext = contextFactory.createLuceneContext(EngineType.ARTICLES, LuceneMode.INDEXING)) {
       for (Article article : articles) {
-        crawlArticle(indexContext, article);
+        crawlArticle(luceneContext, article);
       }
     }
   }
 
-  private void crawlArticle(IndexContext context, Article article) {
+  private void crawlArticle(LuceneContext context, Article article) {
     logger.info("crawling Url: {}", article.getUrl());
     article.setStatus(SpiderStatus.IN_PROGRESS);
     articleRepository.save(article);
@@ -75,7 +75,7 @@ public class SpiderMan {
     articleRepository.save(article);
   }
 
-  private void crawlUrlRecursively(IndexContext context, Article parent, String url, Integer depth, Set<String> visitedUrl) throws IOException {
+  private void crawlUrlRecursively(LuceneContext context, Article parent, String url, Integer depth, Set<String> visitedUrl) throws IOException {
     if (depth > maxDepth || visitedUrl.contains(url)) return;
     Optional<CrawledPage> isAlreadyCrawled = crawledPageRepository.getByUrl(url);
     if (isAlreadyCrawled.isPresent()) return;
@@ -99,7 +99,7 @@ public class SpiderMan {
       .build();
     crawledPageRepository.save(crawledPage);
     // todo: in a separate thread >> lifecycle of executor service?
-    articlesIndexer.indexDocument(context, crawledPage);
+    articlesEngine.indexDocument(context, crawledPage);
 
     Elements links = dom.select("a[href]");
     for (Element link : links) {

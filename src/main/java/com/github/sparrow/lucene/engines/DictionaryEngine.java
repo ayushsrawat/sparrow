@@ -1,9 +1,10 @@
-package com.github.sparrow.lucene.plugins;
+package com.github.sparrow.lucene.engines;
 
 import com.github.sparrow.exception.IndexingException;
-import com.github.sparrow.lucene.IndexContext;
-import com.github.sparrow.lucene.IndexType;
+import com.github.sparrow.lucene.LuceneContext;
+import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.Indexer;
+import com.github.sparrow.lucene.Searcher;
 import com.github.sparrow.lucene.entry.DictionaryEntry;
 import com.github.sparrow.lucene.entry.SearchQuery;
 import lombok.Getter;
@@ -36,9 +37,9 @@ import java.util.List;
 
 @Service
 @PropertySource("classpath:index.properties")
-public class DictionaryIndexer implements Indexer<DictionaryEntry> {
+public class DictionaryEngine implements Indexer<DictionaryEntry>, Searcher<DictionaryEntry> {
 
-  private static final Logger logger = LoggerFactory.getLogger(DictionaryIndexer.class);
+  private static final Logger logger = LoggerFactory.getLogger(DictionaryEngine.class);
 
   @Value("${word.dictionary.txt}")
   private String wordDictionaryTxt;
@@ -46,12 +47,12 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
   protected String datasetDirectory;
 
   @Override
-  public IndexType getIndexType() {
-    return IndexType.DICTIONARY;
+  public EngineType getEngineType() {
+    return EngineType.DICTIONARY;
   }
 
   @Override
-  public boolean needsIndexing(IndexContext context) {
+  public boolean needsIndexing(LuceneContext context) {
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       return reader.maxDoc() <= 0;
     } catch (IOException ioe) {
@@ -74,7 +75,7 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
   }
 
   @Override
-  public void index(IndexContext context) throws IndexingException {
+  public void index(LuceneContext context) throws IndexingException {
     try {
       Path dataPath = Paths.get(datasetDirectory + wordDictionaryTxt);
       if (!Files.exists(dataPath)) {
@@ -114,7 +115,7 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
   }
 
   @Override
-  public void indexDocument(IndexContext context, DictionaryEntry dictionaryEntry) throws IOException {
+  public void indexDocument(LuceneContext context, DictionaryEntry dictionaryEntry) throws IOException {
     Document document = new Document();
     document.add(new TextField(IndexField.WORD.getName(), dictionaryEntry.word(), Field.Store.YES));
     document.add(new StringField(IndexField.PARTS_OF_SPEECH.getName(), dictionaryEntry.partsOfSpeech(), Field.Store.YES));
@@ -124,7 +125,7 @@ public class DictionaryIndexer implements Indexer<DictionaryEntry> {
   }
 
   @Override
-  public List<DictionaryEntry> search(IndexContext context, SearchQuery searchQuery) {
+  public List<DictionaryEntry> search(LuceneContext context, SearchQuery searchQuery) {
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       String ques = searchQuery.getQuery();
       IndexSearcher searcher = new IndexSearcher(reader);

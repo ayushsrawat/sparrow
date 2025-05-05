@@ -2,12 +2,12 @@ package com.github.sparrow.service.impl;
 
 import com.github.sparrow.dto.ArticleSearchResponse;
 import com.github.sparrow.entity.CrawledPage;
-import com.github.sparrow.lucene.IndexContext;
-import com.github.sparrow.lucene.IndexContextFactory;
-import com.github.sparrow.lucene.IndexMode;
-import com.github.sparrow.lucene.IndexType;
+import com.github.sparrow.lucene.LuceneContext;
+import com.github.sparrow.lucene.LuceneContextFactory;
+import com.github.sparrow.lucene.LuceneMode;
+import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.entry.SearchQuery;
-import com.github.sparrow.lucene.plugins.ArticlesIndexer;
+import com.github.sparrow.lucene.engines.ArticlesEngine;
 import com.github.sparrow.service.ArticleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,13 +20,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ArticleServiceImpl implements ArticleService {
 
-  private final ArticlesIndexer articlesIndexer;
-  private final IndexContextFactory indexContextFactory;
+  private final ArticlesEngine articlesEngine;
+  private final LuceneContextFactory luceneContextFactory;
 
   @Override
   public List<ArticleSearchResponse> search(String query) {
-    try (IndexContext context = indexContextFactory.createIndexContext(IndexType.ARTICLES, IndexMode.SEARCHING)) {
-      List<CrawledPage> crawledPages = articlesIndexer.search(context, SearchQuery.builder().query(query).build());
+    try (LuceneContext context = luceneContextFactory.createLuceneContext(EngineType.ARTICLES, LuceneMode.SEARCHING)) {
+      List<CrawledPage> crawledPages = articlesEngine.search(context, SearchQuery.builder().query(query).build());
       List<ArticleSearchResponse> searchResponses = new ArrayList<>();
       for (CrawledPage p : crawledPages) {
         searchResponses.add(ArticleSearchResponse
@@ -44,8 +44,8 @@ public class ArticleServiceImpl implements ArticleService {
 
   @Override
   public List<String> getIndexedTokens() {
-    try (IndexContext context = indexContextFactory.createIndexContext(IndexType.ARTICLES, IndexMode.SEARCHING)) {
-      return articlesIndexer.getIndexedTokens(context, ArticlesIndexer.IndexField.CONTENT);
+    try (LuceneContext context = luceneContextFactory.createLuceneContext(EngineType.ARTICLES, LuceneMode.SEARCHING)) {
+      return articlesEngine.getIndexedTokens(context, ArticlesEngine.IndexField.CONTENT);
     } catch (IOException ioe) {
       throw new RuntimeException(ioe.getMessage());
     }

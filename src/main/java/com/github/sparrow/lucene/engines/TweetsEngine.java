@@ -1,9 +1,10 @@
-package com.github.sparrow.lucene.plugins;
+package com.github.sparrow.lucene.engines;
 
 import com.github.sparrow.exception.IndexingException;
-import com.github.sparrow.lucene.IndexContext;
-import com.github.sparrow.lucene.IndexType;
+import com.github.sparrow.lucene.LuceneContext;
+import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.Indexer;
+import com.github.sparrow.lucene.Searcher;
 import com.github.sparrow.lucene.TweetNormalizer;
 import com.github.sparrow.lucene.entry.SearchQuery;
 import com.github.sparrow.lucene.entry.Tweet;
@@ -50,15 +51,15 @@ import java.util.List;
 
 @Service
 @PropertySource("classpath:index.properties")
-public class TweetsIndexer implements Indexer<Tweet> {
+public class TweetsEngine implements Indexer<Tweet>, Searcher<Tweet> {
 
-  private static final Logger logger = LoggerFactory.getLogger(TweetsIndexer.class);
+  private static final Logger logger = LoggerFactory.getLogger(TweetsEngine.class);
 
   private final TweetNormalizer tweetNormalizer;
   private final DateUtil dateUtil;
   private final ParseUtil parseUtil;
 
-  public TweetsIndexer(
+  public TweetsEngine(
     @Value("${normalizer.mode.db}") boolean useDbNormalizer,
     @Qualifier("tweetDbNormalizer") TweetNormalizer dbNormalizer,
     @Qualifier("tweetJsonNormalizer") TweetNormalizer jsonNormalizer,
@@ -73,12 +74,12 @@ public class TweetsIndexer implements Indexer<Tweet> {
   private Integer maxBatchCommitSize;
 
   @Override
-  public IndexType getIndexType() {
-    return IndexType.TWEETS;
+  public EngineType getEngineType() {
+    return EngineType.TWEETS;
   }
 
   @Override
-  public boolean needsIndexing(IndexContext context) {
+  public boolean needsIndexing(LuceneContext context) {
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       return reader.maxDoc() <= 0;
     } catch (IOException ioe) {
@@ -107,7 +108,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
   }
 
   @Override
-  public void index(IndexContext context) throws IndexingException {
+  public void index(LuceneContext context) throws IndexingException {
     try {
       if (tweetNormalizer.needsNormalization()) {
         tweetNormalizer.normalizeCsv();
@@ -122,7 +123,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
     }
   }
 
-  private int indexTwitterDataset(IndexContext context, List<Tweet> tweets) {
+  private int indexTwitterDataset(LuceneContext context, List<Tweet> tweets) {
     try {
       int batch = 0;
       for (Tweet tweet : tweets) {
@@ -141,7 +142,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
   }
 
   @Override
-  public void indexDocument(IndexContext context, Tweet tweet) throws IOException {
+  public void indexDocument(LuceneContext context, Tweet tweet) throws IOException {
     logger.debug("Indexing tweet >> {} : {} ", tweet.getUsername(), tweet.getTweet());
     Document document = new Document();
     document.add(new LongField(IndexField.TWEET_ID.getName(), tweet.getTweetId(), Field.Store.YES));
@@ -173,7 +174,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
   }
 
   @Override
-  public List<Tweet> search(IndexContext context, SearchQuery searchQuery) {
+  public List<Tweet> search(LuceneContext context, SearchQuery searchQuery) {
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       IndexSearcher searcher = new IndexSearcher(reader);
       BooleanQuery.Builder bqb = new BooleanQuery.Builder();
@@ -211,7 +212,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
       .build();
   }
 
-  public List<Tweet> getIndexedTweets(IndexContext context) {
+  public List<Tweet> getIndexedTweets(LuceneContext context) {
     List<Tweet> indexedTweets = new ArrayList<>();
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       for (LeafReaderContext leafContext : reader.leaves()) {
@@ -231,7 +232,7 @@ public class TweetsIndexer implements Indexer<Tweet> {
     return indexedTweets;
   }
 
-  public List<Tweet> searchByUsername(IndexContext context, String username) {
+  public List<Tweet> searchByUsername(LuceneContext context, String username) {
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       IndexSearcher searcher = new IndexSearcher(reader);
       Query query = new TermQuery(new Term(IndexField.USERNAME.getName(), username));

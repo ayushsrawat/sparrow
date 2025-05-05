@@ -20,8 +20,8 @@ import java.util.List;
 public class DefaultAnalyzerProvider implements AnalyzerProvider {
 
   @Override
-  public Analyzer getAnalyzer(IndexType indexType) {
-    return switch (indexType) {
+  public Analyzer getAnalyzer(EngineType engineType) {
+    return switch (engineType) {
       case TWEETS -> new TweetsAnalyzer();
       case ARTICLES -> new ArticlesAnalyzer();
       default -> new StandardAnalyzer();

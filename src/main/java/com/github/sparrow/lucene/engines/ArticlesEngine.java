@@ -1,10 +1,11 @@
-package com.github.sparrow.lucene.plugins;
+package com.github.sparrow.lucene.engines;
 
 import com.github.sparrow.entity.CrawledPage;
 import com.github.sparrow.exception.IndexingException;
-import com.github.sparrow.lucene.IndexContext;
-import com.github.sparrow.lucene.IndexType;
+import com.github.sparrow.lucene.LuceneContext;
+import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.Indexer;
+import com.github.sparrow.lucene.Searcher;
 import com.github.sparrow.lucene.entry.SearchQuery;
 import com.github.sparrow.repository.CrawledPageRepository;
 import com.github.sparrow.util.DateUtil;
@@ -38,16 +39,16 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ArticlesIndexer implements Indexer<CrawledPage> {
+public class ArticlesEngine implements Indexer<CrawledPage>, Searcher<CrawledPage> {
 
-  private static final Logger logger = LoggerFactory.getLogger(ArticlesIndexer.class);
+  private static final Logger logger = LoggerFactory.getLogger(ArticlesEngine.class);
 
   private final CrawledPageRepository crawledPageRepository;
   private final DateUtil dateUtil;
 
   @Override
-  public IndexType getIndexType() {
-    return IndexType.ARTICLES;
+  public EngineType getEngineType() {
+    return EngineType.ARTICLES;
   }
 
   @Getter
@@ -66,12 +67,12 @@ public class ArticlesIndexer implements Indexer<CrawledPage> {
   }
 
   @Override
-  public void index(IndexContext context) throws IndexingException {
+  public void index(LuceneContext context) throws IndexingException {
     /// articles are crawled by spiders one by one >> no operation
   }
 
   @Override
-  public void indexDocument(IndexContext context, CrawledPage article) throws IOException {
+  public void indexDocument(LuceneContext context, CrawledPage article) throws IOException {
     logger.info("Indexing article: {}", article.getUrl());
     Document document = new Document();
     document.add(new IntField(IndexField.ID.getName(), article.getId(), Field.Store.YES));
@@ -85,7 +86,7 @@ public class ArticlesIndexer implements Indexer<CrawledPage> {
   }
 
   @Override
-  public List<CrawledPage> search(IndexContext context, SearchQuery searchQuery) {
+  public List<CrawledPage> search(LuceneContext context, SearchQuery searchQuery) {
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       IndexSearcher searcher = new IndexSearcher(reader);
       QueryParser queryParser = new QueryParser(IndexField.CONTENT.getName(), context.getAnalyzer());
@@ -105,7 +106,7 @@ public class ArticlesIndexer implements Indexer<CrawledPage> {
     }
   }
 
-  public List<String> getIndexedTokens(IndexContext context, IndexField indexField) {
+  public List<String> getIndexedTokens(LuceneContext context, IndexField indexField) {
     List<String> tokens = new ArrayList<>();
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       for (LeafReaderContext leafContext : reader.leaves()) {

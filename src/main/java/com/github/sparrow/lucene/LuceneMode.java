@@ -1,5 +1,5 @@
 package com.github.sparrow.lucene;
 
-public enum IndexMode {
+public enum LuceneMode {
   INDEXING, SEARCHING
 }
