@@ -11,6 +11,7 @@ public class ArticleSearchResponse {
 
   private String url;
   private String title;
+  private String content;
   private String contentHash;
 
 }

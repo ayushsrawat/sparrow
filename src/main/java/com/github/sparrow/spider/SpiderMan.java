@@ -72,6 +72,7 @@ public class SpiderMan {
       logger.error("Error crawling the article: {} ", article.getUrl(), ioe);
       article.setStatus(SpiderStatus.FAILED);
     }
+    article.setLastCrawledAt(LocalDateTime.now());
     articleRepository.save(article);
   }
 

@@ -29,6 +29,8 @@ public class IndexListener {
 
   @Value("${indexing.parallel}")
   private boolean parallelExecution;
+  @Value("${index.force}")
+  private boolean forceIndex;
 
   @PostConstruct
   public void initIndex() {
@@ -55,7 +57,7 @@ public class IndexListener {
     logger.info("Initializing Indexer : {}", engineType.getName());
     try (LuceneContext context = contextFactory.createLuceneContext(engineType, LuceneMode.INDEXING)) {
       logger.info("Created index context : {}", context);
-      if (!indexer.needsIndexing(context)) {
+      if (!forceIndex && !indexer.needsIndexing(context)) {
         logger.info("{} already indexed. Skipping indexing...", engineType);
         return;
       }

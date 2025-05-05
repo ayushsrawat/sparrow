@@ -3,3 +3,6 @@ GET localhost:8080/api/search/article?q=javascript
 
 ###
 GET localhost:8080/api/search/article?q=indexes
+
+###
+GET localhost:8080/api/search/article?q=Functional programming
