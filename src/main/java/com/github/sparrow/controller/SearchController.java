@@ -33,8 +33,10 @@ public class SearchController {
   @GetMapping("/twitter")
   public ResponseEntity<List<Tweet>> tweetSearch(
     @RequestParam(value = "q") String query,
-    @RequestParam(value = "from", required = false) String username) {
-    return ResponseEntity.ok(twitterService.search(query, username));
+    @RequestParam(value = "from", required = false) String username,
+    @RequestParam(value = "stem", required = false, defaultValue = "true") boolean stem
+  ) {
+    return ResponseEntity.ok(twitterService.search(query, username, stem));
   }
 
   @GetMapping("/user/{username}")
@@ -48,8 +50,11 @@ public class SearchController {
   }
 
   @GetMapping("/article")
-  public ResponseEntity<List<ArticleSearchResponse>> articleSearch(@RequestParam("q") String query) {
-    return ResponseEntity.ok(articleService.search(query));
+  public ResponseEntity<List<ArticleSearchResponse>> articleSearch(
+    @RequestParam(value = "q") String query,
+    @RequestParam(value = "stem", required = false, defaultValue = "true") boolean stem
+  ) {
+    return ResponseEntity.ok(articleService.search(query, stem));
   }
 
   @GetMapping("/article/tokens")

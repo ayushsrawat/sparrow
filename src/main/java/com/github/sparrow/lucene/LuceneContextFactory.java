@@ -31,6 +31,10 @@ public class LuceneContextFactory {
    * Context to save the lucene indexes in ~/lucene/search-index/{index-name}
    */
   public LuceneContext createLuceneContext(EngineType engineType, LuceneMode luceneMode) throws IOException {
+    return createLuceneContext(engineType, luceneMode, true);
+  }
+
+  public LuceneContext createLuceneContext(EngineType engineType, LuceneMode luceneMode, Boolean stemming) throws IOException {
     logger.info("Creating Lucene context for {} in {} mode", engineType.getName(), luceneMode);
     final String luceneIndexPath = createLuceneIndexDir();
     File indexDir = new File(luceneIndexPath + engineType.getName());
@@ -41,7 +45,7 @@ public class LuceneContextFactory {
     Directory luceneDirectory = FSDirectory.open(indexDir.toPath());
     logger.info("Lucene directory : {}", luceneDirectory);
 
-    Analyzer analyzer = analyzerProvider.getAnalyzer(engineType);
+    Analyzer analyzer = analyzerProvider.getAnalyzer(engineType, luceneMode, stemming);
     if (LuceneMode.INDEXING.equals(luceneMode)) {
       IndexWriterConfig config = new IndexWriterConfig(analyzer);
       config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);

@@ -1,7 +1,7 @@
-GET localhost:8080/api/search/twitter?q=god
+GET localhost:8080/api/search/twitter?q=gorgeous
 
 ###
-GET localhost:8080/api/search/twitter?q=luck
+GET localhost:8080/api/search/twitter?q=helping&stem=false
 
 ###
 GET localhost:8080/api/search/twitter?q=funny joke

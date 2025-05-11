@@ -102,6 +102,8 @@ public class SpiderMan {
     // todo: in a separate thread >> lifecycle of executor service?
     articlesEngine.indexDocument(context, crawledPage);
 
+    // todo: resolve github engineering-blogs issue
+    //       can visit different domain, but make sure that domain doesn't fall under some social media domains?
     Elements links = dom.select("a[href]");
     for (Element link : links) {
       String href = link.absUrl("href");

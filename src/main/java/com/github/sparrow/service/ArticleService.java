@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface ArticleService {
 
-  List<ArticleSearchResponse> search(String query);
+  List<ArticleSearchResponse> search(String query, Boolean stem);
 
   List<String> getIndexedTokens();
 
