@@ -16,7 +16,7 @@ import java.io.File;
 import java.io.IOException;
 
 @Component
-@PropertySource("classpath:index.properties")
+@PropertySource("classpath:sparrow.properties")
 @RequiredArgsConstructor
 public class LuceneContextFactory {
 

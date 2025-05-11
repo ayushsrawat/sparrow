@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutorService;
  */
 @Component
 @RequiredArgsConstructor
-@PropertySource("classpath:index.properties")
+@PropertySource("classpath:sparrow.properties")
 public class IndexListener {
 
   private final Logger logger = LoggerFactory.getLogger(IndexListener.class);

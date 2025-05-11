@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
-@PropertySource("classpath:index.properties")
+@PropertySource("classpath:sparrow.properties")
 public abstract class AbstractTweetNormalizer implements TweetNormalizer {
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractTweetNormalizer.class);

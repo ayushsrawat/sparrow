@@ -32,7 +32,7 @@ import java.util.stream.Stream;
  * TweetNormalizer reads the csv datasets and convert them to parsable json dataset
  */
 @Service("tweetJsonNormalizer")
-@PropertySource("classpath:index.properties")
+@PropertySource("classpath:sparrow.properties")
 public class TweetJsonNormalizer extends AbstractTweetNormalizer {
 
   private static final Logger logger = LoggerFactory.getLogger(TweetJsonNormalizer.class);

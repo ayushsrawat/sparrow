@@ -36,7 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-@PropertySource("classpath:index.properties")
+@PropertySource("classpath:sparrow.properties")
 public class DictionaryEngine implements Indexer<DictionaryEntry>, Searcher<DictionaryEntry> {
 
   private static final Logger logger = LoggerFactory.getLogger(DictionaryEngine.class);

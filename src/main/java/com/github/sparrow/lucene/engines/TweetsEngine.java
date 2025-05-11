@@ -50,7 +50,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Service
-@PropertySource("classpath:index.properties")
+@PropertySource("classpath:sparrow.properties")
 public class TweetsEngine implements Indexer<Tweet>, Searcher<Tweet> {
 
   private static final Logger logger = LoggerFactory.getLogger(TweetsEngine.class);
