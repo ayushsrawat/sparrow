@@ -2,7 +2,10 @@
 *.class
 *.iml
 /target
+/build
 /.idea
+.gradle
+
 # Log file
 *.log
 
