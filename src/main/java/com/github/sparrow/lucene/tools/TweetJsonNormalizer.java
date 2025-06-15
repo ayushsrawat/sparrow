@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.sparrow.exception.IndexingException;
-import com.github.sparrow.lucene.entry.Tweet;
+import com.github.sparrow.lucene.entity.Tweet;
 import com.github.sparrow.util.ParseUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

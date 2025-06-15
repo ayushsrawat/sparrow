@@ -1,6 +1,6 @@
 package com.github.sparrow.lucene;
 
-import com.github.sparrow.lucene.entry.SearchQuery;
+import com.github.sparrow.lucene.entity.SearchQuery;
 
 import java.util.List;
 

@@ -7,7 +7,8 @@ import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.Indexer;
 import com.github.sparrow.lucene.LuceneContext;
 import com.github.sparrow.lucene.Searcher;
-import com.github.sparrow.lucene.entry.SearchQuery;
+import com.github.sparrow.lucene.entity.SearchHit;
+import com.github.sparrow.lucene.entity.SearchQuery;
 import com.github.sparrow.util.DateUtil;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +50,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ArticlesEngine implements Indexer<CrawledPage>, Searcher<ArticleSearchResponse> {
+public class ArticlesEngine implements Indexer<CrawledPage>, Searcher<SearchHit<ArticleSearchResponse>> {
 
   private static final Logger logger = LoggerFactory.getLogger(ArticlesEngine.class);
 
@@ -95,12 +96,13 @@ public class ArticlesEngine implements Indexer<CrawledPage>, Searcher<ArticleSea
   }
 
   @Override
-  public List<ArticleSearchResponse> search(LuceneContext context, SearchQuery searchQuery) {
+  public List<SearchHit<ArticleSearchResponse>> search(LuceneContext context, SearchQuery searchQuery) {
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       IndexSearcher searcher = new IndexSearcher(reader);
       QueryParser queryParser = new QueryParser(IndexField.CONTENT.getName(), context.getAnalyzer());
       Query query = queryParser.parse(searchQuery.getQuery());
       TopDocs topDocs = searcher.search(query, Integer.MAX_VALUE);
+      // todo: consider using CollectorManager instead of top n hits
 
       Formatter formatter = new SimpleHTMLFormatter();
       QueryScorer scorer = new QueryScorer(query);
@@ -108,21 +110,22 @@ public class ArticlesEngine implements Indexer<CrawledPage>, Searcher<ArticleSea
       Fragmenter fragmenter = new SimpleSpanFragmenter(scorer, 150);
       highlighter.setTextFragmenter(fragmenter);
 
-      List<ArticleSearchResponse> searchResponses = new ArrayList<>();
+      List<SearchHit<ArticleSearchResponse>> searchResponses = new ArrayList<>();
       for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
         Document doc = reader.storedFields().document(scoreDoc.doc);
         String content = doc.get(IndexField.CONTENT.getName());
         TokenStream tokenStream = context.getAnalyzer().tokenStream(IndexField.CONTENT.getName(), new StringReader(content));
         String highlighted = highlighter.getBestFragment(tokenStream, content);
+        // todo: highlight from a full sentence instead of just 150 chars?
         if (highlighted == null) highlighted = content.length() > 150 ? content.substring(0, 150) + "..." : content;
-        searchResponses.add(ArticleSearchResponse
+        ArticleSearchResponse searched = ArticleSearchResponse
           .builder()
           .url(doc.get(IndexField.URL.getName()))
           .title(doc.get(IndexField.TITLE.getName()))
           .content(highlighted)
           .contentHash(doc.get(IndexField.CONTENT_HASH.getName()))
-          .build()
-        );
+          .build();
+        searchResponses.add(new SearchHit<>(searched, scoreDoc.score, scoreDoc.doc));
       }
       logger.info("Searched [{}] pages for query [{}]", searchResponses.size(), query);
       return searchResponses;

@@ -6,7 +6,8 @@ import com.github.sparrow.lucene.LuceneContext;
 import com.github.sparrow.lucene.LuceneContextFactory;
 import com.github.sparrow.lucene.LuceneMode;
 import com.github.sparrow.lucene.engines.ArticlesEngine;
-import com.github.sparrow.lucene.entry.SearchQuery;
+import com.github.sparrow.lucene.entity.SearchHit;
+import com.github.sparrow.lucene.entity.SearchQuery;
 import com.github.sparrow.service.ArticleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,7 @@ public class ArticleServiceImpl implements ArticleService {
   private final LuceneContextFactory luceneContextFactory;
 
   @Override
-  public List<ArticleSearchResponse> search(String query, Boolean stem) {
+  public List<SearchHit<ArticleSearchResponse>> search(String query, Boolean stem) {
     try (LuceneContext context = luceneContextFactory.createLuceneContext(EngineType.ARTICLES, LuceneMode.SEARCHING, stem)) {
       return articlesEngine.search(context, SearchQuery.builder().query(query).build());
     } catch (IOException ioe) {

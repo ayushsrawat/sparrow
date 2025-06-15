@@ -1,6 +1,6 @@
 package com.github.sparrow.lucene.tools;
 
-import com.github.sparrow.lucene.entry.Tweet;
+import com.github.sparrow.lucene.entity.Tweet;
 import com.github.sparrow.util.TweetUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;

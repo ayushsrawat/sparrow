@@ -1,4 +1,4 @@
-package com.github.sparrow.lucene.entry;
+package com.github.sparrow.lucene.entity;
 
 import lombok.Builder;
 

@@ -4,8 +4,9 @@ import com.github.sparrow.lucene.LuceneContext;
 import com.github.sparrow.lucene.LuceneContextFactory;
 import com.github.sparrow.lucene.LuceneMode;
 import com.github.sparrow.lucene.EngineType;
-import com.github.sparrow.lucene.entry.SearchQuery;
-import com.github.sparrow.lucene.entry.Tweet;
+import com.github.sparrow.lucene.entity.SearchHit;
+import com.github.sparrow.lucene.entity.SearchQuery;
+import com.github.sparrow.lucene.entity.Tweet;
 import com.github.sparrow.lucene.engines.TweetsEngine;
 import com.github.sparrow.service.TwitterService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,7 @@ public class TwitterServiceImpl implements TwitterService {
   private final TweetsEngine tweetsEngine;
 
   @Override
-  public List<Tweet> search(String query, String username, Boolean stem) {
+  public List<SearchHit<Tweet>> search(String query, String username, Boolean stem) {
     try (LuceneContext context = contextFactory.createLuceneContext(EngineType.TWEETS, LuceneMode.SEARCHING, stem)) {
       return tweetsEngine.search(context, SearchQuery.builder().query(query).username(username).build());
     } catch (IOException ioe) {

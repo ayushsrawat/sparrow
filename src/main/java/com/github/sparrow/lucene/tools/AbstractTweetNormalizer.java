@@ -1,7 +1,7 @@
 package com.github.sparrow.lucene.tools;
 
 import com.github.sparrow.lucene.TweetNormalizer;
-import com.github.sparrow.lucene.entry.Tweet;
+import com.github.sparrow.lucene.entity.Tweet;
 import com.github.sparrow.util.ParseUtil;
 import com.univocity.parsers.common.ParsingContext;
 import com.univocity.parsers.common.processor.AbstractRowProcessor;

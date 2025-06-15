@@ -1,7 +1,7 @@
 package com.github.sparrow.lucene;
 
 import com.github.sparrow.exception.IndexingException;
-import com.github.sparrow.lucene.entry.Tweet;
+import com.github.sparrow.lucene.entity.Tweet;
 
 import java.util.List;
 

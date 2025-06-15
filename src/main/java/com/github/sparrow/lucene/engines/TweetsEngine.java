@@ -6,8 +6,9 @@ import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.Indexer;
 import com.github.sparrow.lucene.Searcher;
 import com.github.sparrow.lucene.TweetNormalizer;
-import com.github.sparrow.lucene.entry.SearchQuery;
-import com.github.sparrow.lucene.entry.Tweet;
+import com.github.sparrow.lucene.entity.SearchHit;
+import com.github.sparrow.lucene.entity.SearchQuery;
+import com.github.sparrow.lucene.entity.Tweet;
 import com.github.sparrow.util.DateUtil;
 import com.github.sparrow.util.ParseUtil;
 import lombok.Getter;
@@ -48,10 +49,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.PriorityQueue;
 
 @Service
 @PropertySource("classpath:sparrow.properties")
-public class TweetsEngine implements Indexer<Tweet>, Searcher<Tweet> {
+public class TweetsEngine implements Indexer<Tweet>, Searcher<SearchHit<Tweet>> {
 
   private static final Logger logger = LoggerFactory.getLogger(TweetsEngine.class);
 
@@ -89,7 +91,7 @@ public class TweetsEngine implements Indexer<Tweet>, Searcher<Tweet> {
   }
 
   @Getter
-  private enum IndexField {
+  public enum IndexField {
     TWEET_ID("tweet-id"),
     USERNAME("username"),
     FULL_NAME("full-name"),
@@ -174,7 +176,7 @@ public class TweetsEngine implements Indexer<Tweet>, Searcher<Tweet> {
   }
 
   @Override
-  public List<Tweet> search(LuceneContext context, SearchQuery searchQuery) {
+  public List<SearchHit<Tweet>> search(LuceneContext context, SearchQuery searchQuery) {
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       IndexSearcher searcher = new IndexSearcher(reader);
       BooleanQuery.Builder bqb = new BooleanQuery.Builder();
@@ -186,10 +188,14 @@ public class TweetsEngine implements Indexer<Tweet>, Searcher<Tweet> {
         bqb.add(usernameQuery, BooleanClause.Occur.MUST);
       }
       Query query = bqb.build();
-      logger.info("Searching for the query : {}, using searcher : {}", query, searcher);
-      List<Tweet> searched = searcher.search(query, new TweetCollectorManager());
-      logger.info("Searched [{}] tweets for the query [{}]", searched.size(), query);
-      return searched;
+      logger.info("Searching for the query : [{}]", query);
+      PriorityQueue<SearchHit<Tweet>> hits = searcher.search(query, new TweetCollectorManager());
+      logger.info("Searched [{}] tweets for the query [{}]", hits.size(), query);
+      List<SearchHit<Tweet>> results = new ArrayList<>();
+      while (!hits.isEmpty()) {
+        results.add(hits.poll());
+      }
+      return results;
     } catch (IOException | ParseException e) {
       logger.error("Search failed : {}", e.getMessage());
       return List.of();
@@ -237,26 +243,33 @@ public class TweetsEngine implements Indexer<Tweet>, Searcher<Tweet> {
       IndexSearcher searcher = new IndexSearcher(reader);
       Query query = new TermQuery(new Term(IndexField.USERNAME.getName(), username));
       logger.info("Tweets hit count {} by username {}", searcher.count(query), username);
-      return searcher.search(query, new TweetCollectorManager());
+      PriorityQueue<SearchHit<Tweet>> hits = searcher.search(query, new TweetCollectorManager());
+      List<Tweet> results = new ArrayList<>();
+      while (!hits.isEmpty()) {
+        results.add(hits.poll().getHit());
+      }
+      return results;
     } catch (IOException ioe) {
       logger.error("Error reading index for user {}: {}", username, ioe.getMessage(), ioe);
       return List.of();
     }
   }
 
-  private final class TweetCollectorManager implements CollectorManager<TweetsCollector, List<Tweet>> {
+  private final class TweetCollectorManager implements CollectorManager<TweetsCollector, PriorityQueue<SearchHit<Tweet>>> {
     @Override
     public TweetsCollector newCollector() {
       return new TweetsCollector();
     }
 
     @Override
-    public List<Tweet> reduce(Collection<TweetsCollector> collectors) {
-      List<Tweet> tweetsByUser = new ArrayList<>();
+    public PriorityQueue<SearchHit<Tweet>> reduce(Collection<TweetsCollector> collectors) {
+      final PriorityQueue<SearchHit<Tweet>> hits = new PriorityQueue<>((h1, h2) -> Float.compare(h2.getScore(), h1.getScore()));
       for (TweetsCollector collector : collectors) {
-        tweetsByUser.addAll(collector.getResults());
+        for (SearchHit<Tweet> hit : collector.getHits()) {
+          hits.offer(hit);
+        }
       }
-      return tweetsByUser;
+      return hits;
     }
   }
 
@@ -265,7 +278,7 @@ public class TweetsEngine implements Indexer<Tweet>, Searcher<Tweet> {
     private Scorable scorer;
 
     @Getter
-    private final List<Tweet> results = new ArrayList<>();
+    private final List<SearchHit<Tweet>> hits = new ArrayList<>();
 
     @Override
     public void doSetNextReader(LeafReaderContext context) {
@@ -280,7 +293,8 @@ public class TweetsEngine implements Indexer<Tweet>, Searcher<Tweet> {
     @Override
     public void collect(int docId) throws IOException {
       Document doc = context.reader().storedFields().document(docId);
-      results.add(extractTweetFromDocument(doc));
+      Tweet tweet = extractTweetFromDocument(doc);
+      hits.add(new SearchHit<>(tweet, scorer.score(), context.docBase + docId));
       logger.debug("Score for docId {}: {}", docId, scorer.score());
     }
 

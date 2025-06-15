@@ -1,7 +1,7 @@
 package com.github.sparrow.util;
 
 import com.github.sparrow.entity.TweetData;
-import com.github.sparrow.lucene.entry.Tweet;
+import com.github.sparrow.lucene.entity.Tweet;
 import org.springframework.stereotype.Component;
 
 @Component

@@ -1,8 +1,9 @@
 package com.github.sparrow.controller;
 
 import com.github.sparrow.dto.ArticleSearchResponse;
-import com.github.sparrow.lucene.entry.DictionaryEntry;
-import com.github.sparrow.lucene.entry.Tweet;
+import com.github.sparrow.lucene.entity.DictionaryEntry;
+import com.github.sparrow.lucene.entity.SearchHit;
+import com.github.sparrow.lucene.entity.Tweet;
 import com.github.sparrow.service.ArticleService;
 import com.github.sparrow.service.DictionaryService;
 import com.github.sparrow.service.TwitterService;
@@ -26,12 +27,12 @@ public class SearchController {
   private final TwitterService twitterService;
 
   @GetMapping("/dictionary")
-  public ResponseEntity<List<DictionaryEntry>> dictionarySearch(@RequestParam("q") String query) {
+  public ResponseEntity<List<SearchHit<DictionaryEntry>>> dictionarySearch(@RequestParam("q") String query) {
     return ResponseEntity.ok(dictionaryService.search(query));
   }
 
   @GetMapping("/twitter")
-  public ResponseEntity<List<Tweet>> tweetSearch(
+  public ResponseEntity<List<SearchHit<Tweet>>> tweetSearch(
     @RequestParam(value = "q") String query,
     @RequestParam(value = "from", required = false) String username,
     @RequestParam(value = "stem", required = false, defaultValue = "true") boolean stem
@@ -50,7 +51,7 @@ public class SearchController {
   }
 
   @GetMapping("/article")
-  public ResponseEntity<List<ArticleSearchResponse>> articleSearch(
+  public ResponseEntity<List<SearchHit<ArticleSearchResponse>>> articleSearch(
     @RequestParam(value = "q") String query,
     @RequestParam(value = "stem", required = false, defaultValue = "true") boolean stem
   ) {

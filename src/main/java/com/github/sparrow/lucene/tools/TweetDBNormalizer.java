@@ -1,7 +1,7 @@
 package com.github.sparrow.lucene.tools;
 
 import com.github.sparrow.exception.IndexingException;
-import com.github.sparrow.lucene.entry.Tweet;
+import com.github.sparrow.lucene.entity.Tweet;
 import com.github.sparrow.repository.TweetRepository;
 import com.github.sparrow.util.ParseUtil;
 import com.github.sparrow.util.TweetUtil;

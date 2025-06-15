@@ -4,8 +4,9 @@ import com.github.sparrow.lucene.LuceneContext;
 import com.github.sparrow.lucene.LuceneContextFactory;
 import com.github.sparrow.lucene.LuceneMode;
 import com.github.sparrow.lucene.EngineType;
-import com.github.sparrow.lucene.entry.DictionaryEntry;
-import com.github.sparrow.lucene.entry.SearchQuery;
+import com.github.sparrow.lucene.entity.DictionaryEntry;
+import com.github.sparrow.lucene.entity.SearchHit;
+import com.github.sparrow.lucene.entity.SearchQuery;
 import com.github.sparrow.lucene.engines.DictionaryEngine;
 import com.github.sparrow.service.DictionaryService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,7 @@ public class DictionaryServiceImpl implements DictionaryService {
   private final DictionaryEngine dictionaryEngine;
 
   @Override
-  public List<DictionaryEntry> search(String query) {
+  public List<SearchHit<DictionaryEntry>> search(String query) {
     try (LuceneContext context = luceneContextFactory.createLuceneContext(EngineType.DICTIONARY, LuceneMode.SEARCHING)) {
       return dictionaryEngine.search(context, SearchQuery.builder().query(query).build());
     } catch (IOException e) {

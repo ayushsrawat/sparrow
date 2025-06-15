@@ -5,8 +5,9 @@ import com.github.sparrow.lucene.LuceneContext;
 import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.Indexer;
 import com.github.sparrow.lucene.Searcher;
-import com.github.sparrow.lucene.entry.DictionaryEntry;
-import com.github.sparrow.lucene.entry.SearchQuery;
+import com.github.sparrow.lucene.entity.DictionaryEntry;
+import com.github.sparrow.lucene.entity.SearchHit;
+import com.github.sparrow.lucene.entity.SearchQuery;
 import lombok.Getter;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -37,7 +38,7 @@ import java.util.List;
 
 @Service
 @PropertySource("classpath:sparrow.properties")
-public class DictionaryEngine implements Indexer<DictionaryEntry>, Searcher<DictionaryEntry> {
+public class DictionaryEngine implements Indexer<DictionaryEntry>, Searcher<SearchHit<DictionaryEntry>> {
 
   private static final Logger logger = LoggerFactory.getLogger(DictionaryEngine.class);
 
@@ -125,7 +126,7 @@ public class DictionaryEngine implements Indexer<DictionaryEntry>, Searcher<Dict
   }
 
   @Override
-  public List<DictionaryEntry> search(LuceneContext context, SearchQuery searchQuery) {
+  public List<SearchHit<DictionaryEntry>> search(LuceneContext context, SearchQuery searchQuery) {
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       String ques = searchQuery.getQuery();
       IndexSearcher searcher = new IndexSearcher(reader);
@@ -134,7 +135,7 @@ public class DictionaryEngine implements Indexer<DictionaryEntry>, Searcher<Dict
       logger.info("Searching for the query : {}, using searcher : {}", query, searcher);
 
       TopDocs topDocs = searcher.search(query, 10);
-      List<DictionaryEntry> result = new ArrayList<>();
+      List<SearchHit<DictionaryEntry>> hits = new ArrayList<>();
       for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
         logger.debug("Explanation : {}", searcher.explain(query, scoreDoc.doc));
         Document document = searcher.storedFields().document(scoreDoc.doc);
@@ -144,10 +145,10 @@ public class DictionaryEngine implements Indexer<DictionaryEntry>, Searcher<Dict
           .partsOfSpeech(document.get(IndexField.PARTS_OF_SPEECH.getName()))
           .source(document.get(IndexField.SOURCE.getName()))
           .build();
-        result.add(entry);
+        hits.add(new SearchHit<>(entry, scoreDoc.score, scoreDoc.doc));
       }
-      logger.info("Searched {} words for the question {}.", result.size(), ques);
-      return result;
+      logger.info("Searched {} words for the question {}.", hits.size(), ques);
+      return hits;
     } catch (IOException | ParseException e) {
       logger.error("Search failed : {}", e.getMessage());
       return List.of();
