@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface ArticleService {
 
-  List<SearchHit<ArticleSearchResponse>> search(String query, Boolean stem);
+  List<SearchHit<ArticleSearchResponse>> search(String query, Integer topN, Boolean stem);
 
   List<String> getIndexedTokens();
 

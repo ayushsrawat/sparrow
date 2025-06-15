@@ -192,7 +192,9 @@ public class TweetsEngine implements Indexer<Tweet>, Searcher<SearchHit<Tweet>> 
       PriorityQueue<SearchHit<Tweet>> hits = searcher.search(query, new TweetCollectorManager());
       logger.info("Searched [{}] tweets for the query [{}]", hits.size(), query);
       List<SearchHit<Tweet>> results = new ArrayList<>();
-      while (!hits.isEmpty()) {
+      final int n = hits.size();
+      searchQuery.setTopN(searchQuery.getTopN() == null ? Integer.MAX_VALUE : searchQuery.getTopN());
+      while (!hits.isEmpty() && (n - hits.size()) < searchQuery.getTopN()) {
         results.add(hits.poll());
       }
       return results;

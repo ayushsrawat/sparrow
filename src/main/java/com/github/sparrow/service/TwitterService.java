@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface TwitterService {
 
-  List<SearchHit<Tweet>> search(String query, String username, Boolean stem);
+  List<SearchHit<Tweet>> search(String query, Integer topN, String username, Boolean stem);
 
   List<Tweet> searchByUsername(String username);
 

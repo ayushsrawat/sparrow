@@ -23,9 +23,14 @@ public class TwitterServiceImpl implements TwitterService {
   private final TweetsEngine tweetsEngine;
 
   @Override
-  public List<SearchHit<Tweet>> search(String query, String username, Boolean stem) {
+  public List<SearchHit<Tweet>> search(String query, Integer topN, String username, Boolean stem) {
     try (LuceneContext context = contextFactory.createLuceneContext(EngineType.TWEETS, LuceneMode.SEARCHING, stem)) {
-      return tweetsEngine.search(context, SearchQuery.builder().query(query).username(username).build());
+      return tweetsEngine.search(context,
+        SearchQuery.builder()
+          .query(query)
+          .username(username)
+          .topN(topN)
+          .build());
     } catch (IOException ioe) {
       throw new RuntimeException(ioe.getMessage());
     }

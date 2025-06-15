@@ -15,5 +15,6 @@ public class SearchQuery {
 
   private String query;
   private String username;
+  private Integer topN;
 
 }

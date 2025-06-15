@@ -10,7 +10,7 @@ GET localhost:8080/api/search/twitter?q=funny joke
 GET localhost:8080/api/search/twitter?q=Jumped
 
 ###
-GET localhost:8080/api/search/twitter?q=ipl
+GET localhost:8080/api/search/twitter?q=ipl&n=6
 
 ###
 GET localhost:8080/api/search/user/aDeSe

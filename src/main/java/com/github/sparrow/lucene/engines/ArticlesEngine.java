@@ -101,7 +101,8 @@ public class ArticlesEngine implements Indexer<CrawledPage>, Searcher<SearchHit<
       IndexSearcher searcher = new IndexSearcher(reader);
       QueryParser queryParser = new QueryParser(IndexField.CONTENT.getName(), context.getAnalyzer());
       Query query = queryParser.parse(searchQuery.getQuery());
-      TopDocs topDocs = searcher.search(query, Integer.MAX_VALUE);
+      final Integer n = searchQuery.getTopN();
+      TopDocs topDocs = searcher.search(query, n == null ? Integer.MAX_VALUE : n);
       // todo: consider using CollectorManager instead of top n hits
 
       Formatter formatter = new SimpleHTMLFormatter();

@@ -23,9 +23,9 @@ public class ArticleServiceImpl implements ArticleService {
   private final LuceneContextFactory luceneContextFactory;
 
   @Override
-  public List<SearchHit<ArticleSearchResponse>> search(String query, Boolean stem) {
+  public List<SearchHit<ArticleSearchResponse>> search(String query, Integer topN, Boolean stem) {
     try (LuceneContext context = luceneContextFactory.createLuceneContext(EngineType.ARTICLES, LuceneMode.SEARCHING, stem)) {
-      return articlesEngine.search(context, SearchQuery.builder().query(query).build());
+      return articlesEngine.search(context, SearchQuery.builder().query(query).topN(topN).build());
     } catch (IOException ioe) {
       throw new RuntimeException(ioe.getMessage());
     }
