@@ -1,9 +1,9 @@
 package com.github.sparrow.lucene.engines;
 
 import com.github.sparrow.exception.IndexingException;
-import com.github.sparrow.lucene.LuceneContext;
 import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.Indexer;
+import com.github.sparrow.lucene.LuceneContext;
 import com.github.sparrow.lucene.Searcher;
 import com.github.sparrow.lucene.TweetNormalizer;
 import com.github.sparrow.lucene.entity.SearchHit;
@@ -265,7 +265,7 @@ public class TweetsEngine implements Indexer<Tweet>, Searcher<SearchHit<Tweet>> 
 
     @Override
     public PriorityQueue<SearchHit<Tweet>> reduce(Collection<TweetsCollector> collectors) {
-      final PriorityQueue<SearchHit<Tweet>> hits = new PriorityQueue<>((h1, h2) -> Float.compare(h2.getScore(), h1.getScore()));
+      final PriorityQueue<SearchHit<Tweet>> hits = new PriorityQueue<>(SearchHit::compareTo);
       for (TweetsCollector collector : collectors) {
         for (SearchHit<Tweet> hit : collector.getHits()) {
           hits.offer(hit);
