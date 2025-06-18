@@ -17,6 +17,7 @@
 
 # Package Files #
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.war
 *.nar
 *.ear
@@ -29,7 +30,5 @@ hs_err_pid*
 replay_pid*
 
 .DS_store
-src/main/resources/tweets/*.json
-src/main/resources/wikipedia
 data/tweets/json/
 src/main/resources/ideas
