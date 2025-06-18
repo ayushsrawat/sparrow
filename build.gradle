@@ -38,6 +38,7 @@ dependencies {
     implementation 'com.univocity:univocity-parsers:2.9.1'
     implementation 'com.google.code.gson:gson:2.13.0'
     implementation 'org.jsoup:jsoup:1.20.1'
+    implementation("org.jspecify:jspecify:1.0.0")
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
