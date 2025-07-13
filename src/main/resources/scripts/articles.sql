@@ -16,6 +16,7 @@ create table crawled_pages
     parent_id       int references articles (id),
     url             text        not null unique,
     title           text,
+    content_type    varchar(255),
     crawl_status    varchar(20) not null,
     last_crawled_at timestamp,
     content_hash    varchar(255)

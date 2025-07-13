@@ -3,7 +3,6 @@ package com.github.sparrow.spider;
 import lombok.RequiredArgsConstructor;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -19,7 +18,7 @@ public class SpiderManJob implements Job {
   private final SpiderMan spiderMan;
 
   @Override
-  public void execute(JobExecutionContext context) throws JobExecutionException {
+  public void execute(JobExecutionContext context) {
     try {
       spiderMan.activatePowers(context);
     } catch (IOException e) {

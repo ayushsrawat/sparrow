@@ -2,10 +2,10 @@ package com.github.sparrow.spider;
 
 import com.github.sparrow.entity.Article;
 import com.github.sparrow.entity.CrawledPage;
+import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.LuceneContext;
 import com.github.sparrow.lucene.LuceneContextFactory;
 import com.github.sparrow.lucene.LuceneMode;
-import com.github.sparrow.lucene.EngineType;
 import com.github.sparrow.lucene.engines.ArticlesEngine;
 import com.github.sparrow.repository.ArticleRepository;
 import com.github.sparrow.repository.CrawledPageRepository;
@@ -50,11 +50,15 @@ public class SpiderMan {
   public void activatePowers(JobExecutionContext jobContext) throws IOException {
     logger.info("SpiderMan Scheduling at: {}", jobContext.getScheduledFireTime());
     List<Article> articles = articleRepository.getSchedulingArticles(SpiderStatus.PENDING, SpiderStatus.FAILED, maxRetries);
-    if (articles.isEmpty()) {
+    if (articles.isEmpty()) { // todo what is maxRetries above if you are not updating it?
       logger.info("No articles to crawl. Scheduling next at {}", jobContext.getNextFireTime());
       return;
     }
     try (LuceneContext luceneContext = contextFactory.createLuceneContext(EngineType.ARTICLES, LuceneMode.INDEXING)) {
+      for (Article article : articles) {
+        article.setStatus(SpiderStatus.IN_PROGRESS);
+        articleRepository.save(article);
+      }
       for (Article article : articles) {
         crawlArticle(luceneContext, article);
       }
@@ -63,8 +67,6 @@ public class SpiderMan {
 
   private void crawlArticle(LuceneContext context, Article article) {
     logger.info("crawling Url: {}", article.getUrl());
-    article.setStatus(SpiderStatus.IN_PROGRESS);
-    articleRepository.save(article);
     try {
       crawlUrlRecursively(context, article, article.getUrl(), 0, new HashSet<>());
       article.setStatus(SpiderStatus.CRAWLED);
@@ -81,40 +83,55 @@ public class SpiderMan {
     Optional<CrawledPage> isAlreadyCrawled = crawledPageRepository.getByUrl(url);
     if (isAlreadyCrawled.isPresent()) return;
 
-    Document dom = Jsoup.connect(url).get();
-    visitedUrl.add(url);
-    String title = dom.title();
-    logger.info("Crawled page title: {}", title);
+    Scrapper scrapper = new Scrapper(url, new Scrapper.Callback() {
+      @Override
+      public void success(String content, String contentType) {
+        Document dom = Jsoup.parse(content);
+        visitedUrl.add(url);
+        String title = dom.title();
+        logger.info("Crawled page title: {}", title);
 
-    String content = dom.body().text();
-    String contentHash = hashUtil.hashSHA256(content);
-    CrawledPage crawledPage = CrawledPage
-      .builder()
-      .url(url)
-      .parentArticle(parent)
-      .title(title)
-      .contentHash(contentHash)
-      .content(content)
-      .status(SpiderStatus.CRAWLED)
-      .lastCrawledAt(LocalDateTime.now())
-      .build();
-    crawledPageRepository.save(crawledPage);
-    // todo: in a separate thread >> lifecycle of executor service?
-    articlesEngine.indexDocument(context, crawledPage);
-
-    // todo: resolve github engineering-blogs issue
-    //       can visit different domain, but make sure that domain doesn't fall under some social media domains?
-    Elements links = dom.select("a[href]");
-    for (Element link : links) {
-      String href = link.absUrl("href");
-      if (!href.isEmpty() && isSameDomain(url, href)) {
+        String body = dom.body().text();
+        String contentHash = hashUtil.hashSHA256(body);
+        CrawledPage crawledPage = CrawledPage
+          .builder()
+          .url(url)
+          .parentArticle(parent)
+          .title(title)
+          .contentHash(contentHash)
+          .content(body)
+          .contentType(contentType)
+          .status(SpiderStatus.CRAWLED)
+          .lastCrawledAt(LocalDateTime.now())
+          .build();
+        crawledPageRepository.save(crawledPage);
+        // todo: in a separate thread >> lifecycle of executor service?
         try {
-          crawlUrlRecursively(context, parent, href, depth + 1, visitedUrl);
+          articlesEngine.indexDocument(context, crawledPage);
         } catch (IOException ioe) {
-          logger.warn("Failed to crawl link: {}", href, ioe);
+          logger.error("Unable to index Scrapped document {} : {}", url, ioe.getMessage());
+        }
+        // todo: resolve github engineering-blogs issue
+        //       can visit different domain, but make sure that domain doesn't fall under some social media domains?
+        Elements links = dom.select("a[href]");
+        for (Element link : links) {
+          String href = link.absUrl("href");
+          if (!href.isEmpty() && isSameDomain(url, href)) {
+            try {
+              crawlUrlRecursively(context, parent, href, depth + 1, visitedUrl);
+            } catch (IOException ioe) {
+              logger.warn("Failed to crawl link: {}", href, ioe);
+            }
+          }
         }
       }
-    }
+
+      @Override
+      public void failure(Throwable t) {
+        logger.error(t.getMessage(), t);
+      }
+    });
+    scrapper.run();
   }
 
   private boolean isSameDomain(String base, String link) {
@@ -127,4 +144,12 @@ public class SpiderMan {
     }
   }
 
+  public String normalizeUrl(String url) {
+    try {
+      URI uri = new URI(url);
+      return new URI(uri.getScheme(), uri.getHost(), uri.getPath(), null).toString();
+    } catch (URISyntaxException e) {
+      return url;
+    }
+  }
 }

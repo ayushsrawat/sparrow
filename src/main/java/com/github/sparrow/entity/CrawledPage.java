@@ -39,6 +39,9 @@ public class CrawledPage {
 
   private String title;
 
+  @Column(name = "content_type")
+  private String contentType;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "crawl_status")
   private SpiderStatus status;
