@@ -224,6 +224,7 @@ public class TweetsEngine implements Indexer<Tweet>, Searcher<SearchHit<Tweet>> 
     List<Tweet> indexedTweets = new ArrayList<>();
     try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
       for (LeafReaderContext leafContext : reader.leaves()) {
+        //noinspection resource
         LeafReader leafReader = leafContext.reader();
         Bits liveDocs = leafReader.getLiveDocs();
         for (int i = 0; i < leafReader.maxDoc(); i++) {
@@ -294,6 +295,7 @@ public class TweetsEngine implements Indexer<Tweet>, Searcher<SearchHit<Tweet>> 
 
     @Override
     public void collect(int docId) throws IOException {
+      //noinspection resource
       Document doc = context.reader().storedFields().document(docId);
       Tweet tweet = extractTweetFromDocument(doc);
       hits.add(new SearchHit<>(tweet, scorer.score(), context.docBase + docId));

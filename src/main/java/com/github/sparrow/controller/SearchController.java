@@ -1,6 +1,6 @@
 package com.github.sparrow.controller;
 
-import com.github.sparrow.dto.ArticleSearchResponse;
+import com.github.sparrow.payload.response.ArticleSearchResponse;
 import com.github.sparrow.lucene.entity.DictionaryEntry;
 import com.github.sparrow.lucene.entity.SearchHit;
 import com.github.sparrow.lucene.entity.Tweet;
@@ -62,6 +62,11 @@ public class SearchController {
   @GetMapping("/article/tokens")
   public ResponseEntity<List<String>> articleIndexedTokens() {
     return ResponseEntity.ok(articleService.getIndexedTokens());
+  }
+
+  @GetMapping("/article/status")
+  public ResponseEntity<?> articleStatus() {
+    return ResponseEntity.ok(articleService.getStatus());
   }
 
 }

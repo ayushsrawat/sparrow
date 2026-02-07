@@ -25,16 +25,22 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class SpiderMan {
 
   private static final Logger logger = LoggerFactory.getLogger(SpiderMan.class);
+  private static final Pattern urlPattern = Pattern.compile("https?://(\\S*)");
 
   private final ArticlesEngine articlesEngine;
   private final ArticleRepository articleRepository;
@@ -86,12 +92,28 @@ public class SpiderMan {
     Scrapper scrapper = new Scrapper(url, new Scrapper.Callback() {
       @Override
       public void success(String content, String contentType) {
-        Document dom = Jsoup.parse(content);
-        visitedUrl.add(url);
-        String title = dom.title();
-        logger.info("Crawled page title: {}", title);
-
-        String body = dom.body().text();
+        String title = url;
+        String body = content;
+        List<String> childUrls = new ArrayList<>();
+        if (contentType.contains("html")) {
+          Document dom = Jsoup.parse(content);
+          visitedUrl.add(url);
+          title = dom.title();
+          logger.info("Crawled page title: {}", title);
+          body = dom.body().text();
+          Elements links = dom.select("a[href]");
+          for (Element link : links) {
+            childUrls.add(link.absUrl("href"));
+          }
+        } else if (contentType.contains("plain")) {
+          Matcher matcher = urlPattern.matcher(content);
+          String[] urls = matcher.results().map(MatchResult::group).toArray(String[]::new);
+          logger.info("Found {} urls from parent url [{}]", urls.length, url);
+          childUrls.addAll(Arrays.asList(urls));
+        } else {
+          logger.warn("Unsupported content type for url [{}]", url);
+          return;
+        }
         String contentHash = hashUtil.hashSHA256(body);
         CrawledPage crawledPage = CrawledPage
           .builder()
@@ -105,22 +127,17 @@ public class SpiderMan {
           .lastCrawledAt(LocalDateTime.now())
           .build();
         crawledPageRepository.save(crawledPage);
-        // todo: in a separate thread >> lifecycle of executor service?
         try {
           articlesEngine.indexDocument(context, crawledPage);
         } catch (IOException ioe) {
           logger.error("Unable to index Scrapped document {} : {}", url, ioe.getMessage());
         }
-        // todo: resolve github engineering-blogs issue
-        //       can visit different domain, but make sure that domain doesn't fall under some social media domains?
-        Elements links = dom.select("a[href]");
-        for (Element link : links) {
-          String href = link.absUrl("href");
-          if (!href.isEmpty() && isSameDomain(url, href)) {
+        for (String childUrl : childUrls) {
+          if (!childUrl.isEmpty() /*&& isSameDomain(url, childUrl)*/) {
             try {
-              crawlUrlRecursively(context, parent, href, depth + 1, visitedUrl);
+              crawlUrlRecursively(context, parent, childUrl, depth + 1, visitedUrl);
             } catch (IOException ioe) {
-              logger.warn("Failed to crawl link: {}", href, ioe);
+              logger.warn("Failed to crawl link: {}", childUrl, ioe);
             }
           }
         }
@@ -134,6 +151,7 @@ public class SpiderMan {
     scrapper.run();
   }
 
+  @SuppressWarnings("unused")
   private boolean isSameDomain(String base, String link) {
     try {
       URI baseUri = new URI(base);
@@ -144,6 +162,7 @@ public class SpiderMan {
     }
   }
 
+  @SuppressWarnings("unused")
   public String normalizeUrl(String url) {
     try {
       URI uri = new URI(url);

@@ -1,4 +1,4 @@
-package com.github.sparrow.dto;
+package com.github.sparrow.payload.response;
 
 import lombok.Builder;
 import lombok.Getter;

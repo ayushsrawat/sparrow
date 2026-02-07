@@ -1,6 +1,6 @@
 package com.github.sparrow.lucene.engines;
 
-import com.github.sparrow.dto.ArticleSearchResponse;
+import com.github.sparrow.payload.response.ArticleSearchResponse;
 import com.github.sparrow.entity.CrawledPage;
 import com.github.sparrow.exception.IndexingException;
 import com.github.sparrow.lucene.EngineType;
@@ -9,7 +9,9 @@ import com.github.sparrow.lucene.LuceneContext;
 import com.github.sparrow.lucene.Searcher;
 import com.github.sparrow.lucene.entity.SearchHit;
 import com.github.sparrow.lucene.entity.SearchQuery;
+import com.github.sparrow.payload.response.ArticleStatusResponse;
 import com.github.sparrow.util.DateUtil;
+import com.github.sparrow.util.ParseUtil;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.lucene.analysis.TokenStream;
@@ -21,6 +23,7 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
@@ -41,6 +44,7 @@ import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.apache.lucene.search.highlight.QueryScorer;
 import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
 import org.apache.lucene.search.highlight.SimpleSpanFragmenter;
+import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +65,7 @@ public class ArticlesEngine implements Indexer<CrawledPage>, Searcher<SearchHit<
   private static final Integer MAX_FRAGMENT_SIZE = 150;
 
   private final DateUtil dateUtil;
+  private final ParseUtil parseUtil;
 
   @Override
   public EngineType getEngineType() {
@@ -217,6 +222,37 @@ public class ArticlesEngine implements Indexer<CrawledPage>, Searcher<SearchHit<
     public ScoreMode scoreMode() {
       return ScoreMode.TOP_DOCS_WITH_SCORES;
     }
+  }
+
+  public List<ArticleStatusResponse> status(LuceneContext context) {
+    List<ArticleStatusResponse> articleStatusResponses = new ArrayList<>();
+    try (IndexReader reader = DirectoryReader.open(context.getDirectory())) {
+      for (LeafReaderContext leafContext : reader.leaves()) {
+        //noinspection resource
+        LeafReader leafReader = leafContext.reader();
+        Bits liveDocs = leafReader.getLiveDocs();
+        for (int i = 0; i < leafReader.maxDoc(); i++) {
+          if (liveDocs == null || liveDocs.get(i)) {
+            Document document = leafReader.storedFields().document(i);
+            // todo: add contentLength a field in indexes
+            String content = document.get(IndexField.CONTENT.getName());
+            long crawledAt = parseUtil.parseLong(document.get(IndexField.CRAWLED_AT.getName()));
+            articleStatusResponses.add(
+                ArticleStatusResponse
+                    .builder()
+                    .title(document.get(IndexField.TITLE.getName()))
+                    .url(document.get(IndexField.URL.getName()))
+                    .contentLength(content.length())
+                    .crawledAt(dateUtil.convertToLocalDateTime(crawledAt))
+                    .build()
+            );
+          }
+        }
+      }
+    } catch (IOException ioe) {
+      logger.error("Error getting article status {}", ioe.getMessage(), ioe);
+    }
+    return articleStatusResponses;
   }
 
 }
